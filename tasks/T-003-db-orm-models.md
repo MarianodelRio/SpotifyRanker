@@ -3,7 +3,7 @@ id: T-003
 phase: 0
 agent: Data
 depends_on: [T-002]
-status: PR_OPEN
+status: DONE
 branch: feature/T-003-db-orm-models
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/4"
 ---
