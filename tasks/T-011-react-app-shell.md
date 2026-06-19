@@ -3,9 +3,9 @@ id: T-011
 phase: 1
 agent: Frontend
 depends_on: [T-001]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-011-react-app-shell
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/3"
 ---
 
 ### T-011 — React app shell
@@ -35,3 +35,5 @@ Build the application layout and navigation skeleton. No real data yet — compo
 - All API domain modules (`auth.ts`, `library.ts`, etc.) are fully typed and structured for real fetch calls — they will 404 until backend endpoints are implemented. No mock data.
 - `tailwind.config.js` gains `darkMode: 'class'` for future dark/light toggling.
 - `npx tsc --noEmit` and `eslint` both pass clean with zero warnings.
+- PR Reviewer: rebase conflicto en `src/types/api.ts` resuelto con tipos de T-002 como base + shapes de respuesta/request de T-011 añadidos al final. `ImportStatus` (interface de T-011) renombrado a `ImportProgress` para evitar colisión con el string-literal type de T-002. Aprobado por humano antes de aplicar.
+- Nota para tareas futuras: `RankedTrack.candidate.track` (dos niveles) — los componentes que consuman tracks rankeados deben navegar via `.candidate.track`, no `.track` directamente.
