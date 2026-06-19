@@ -1,5 +1,33 @@
 # Parallel Development — TasteRanker
 
+## Physical Setup — Worktrees
+
+Each parallel agent works in its own **worktree**: a separate directory on disk that shares the same `.git/` database but can be on a different branch simultaneously. This is what makes true parallelism possible — two agents never compete for the same working directory.
+
+| Directory | Branch | Purpose |
+|-----------|--------|---------|
+| `spotify_ranker/` | `master` | Main repo — stays on master. Run `/orchestrate`, `/status`, `/prepare-pr` from here. Never implement here. |
+| `spotify_ranker-T006/` | `feature/T-006-db-repositories` | Worktree for Agent working T-006 |
+| `spotify_ranker-T012/` | `feature/T-012-auth-flow` | Worktree for Agent working T-012 |
+
+**Naming convention:** `../spotify_ranker-TXXX` where XXX is the zero-padded task number.
+
+**Lifecycle:**
+- Worktree created automatically in Step 4 of `/orchestrate`
+- All implementation (Steps 5–7) happens inside the worktree
+- Worktree removed automatically in Step 8 after push — the branch stays on remote
+
+**Viewing changes:** You can inspect what an agent is building via `git log feature/T-006` or `git diff master..feature/T-006` from the main repo. You don't need to open the worktree folder unless you want to browse files directly.
+
+**Useful commands from master:**
+```bash
+git worktree list                          # see all active worktrees
+git log --oneline feature/T-006            # commits on a specific branch
+git diff master..feature/T-006 --stat      # what files changed
+```
+
+---
+
 ## Task-Per-Branch Model
 
 Each task in `task.md` gets its own branch: `feature/T-XXX-short-slug`. Branches are short-lived — the goal is to open a PR quickly and merge, not accumulate long-running branches.

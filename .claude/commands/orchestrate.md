@@ -100,14 +100,14 @@ Questions: [genuine ambiguities, or "None"]
 
 ---
 
-## Step 4 — Claim the task (branch creation = claim)
+## Step 4 — Claim the task (branch + worktree = claim)
 
 1. Update `tasks/T-XXX-slug.md` frontmatter:
    ```yaml
    status: IN_PROGRESS
    branch: feature/T-XXX-short-slug
    ```
-2. Create the branch and push — the push is the atomic claim:
+2. Create the branch, commit the claim, and push — the push is the atomic claim:
    ```bash
    git checkout -b feature/T-XXX-short-slug
    git add tasks/T-XXX-slug.md
@@ -118,12 +118,18 @@ Questions: [genuine ambiguities, or "None"]
    - `git checkout master`
    - `git branch -D feature/T-XXX-short-slug`
    - Return to Step 1 and pick a different available task.
+4. Create a worktree for isolated parallel development:
+   ```bash
+   git worktree add ../spotify_ranker-T-XXX feature/T-XXX-short-slug
+   ```
+   All implementation (Steps 5–7) happens inside `../spotify_ranker-T-XXX/`. The main repo stays on `master`.
+   Naming convention: `../spotify_ranker-T006`, `../spotify_ranker-T012`, etc.
 
 ---
 
 ## Step 5 — Implement
 
-The branch already exists from Step 4. Implement directly on it:
+Work inside the worktree (`../spotify_ranker-T-XXX/`). The branch already exists.
 
 - Only touch folders allowed by the task's assigned agent file
 - Only implement what the task scope defines — nothing beyond it
@@ -133,6 +139,8 @@ The branch already exists from Step 4. Implement directly on it:
 ---
 
 ## Step 6 — Verify before committing
+
+Run all checks from inside the worktree (`../spotify_ranker-T-XXX/`):
 
 ```bash
 pytest
@@ -158,7 +166,7 @@ Do not open a PR. That is the PR Reviewer's job via `/prepare-pr`.
 
 ---
 
-## Step 8 — Mark ready for review
+## Step 8 — Mark ready for review and clean up worktree
 
 1. Update `tasks/T-XXX-slug.md` frontmatter:
    ```yaml
@@ -168,9 +176,15 @@ Do not open a PR. That is the PR Reviewer's job via `/prepare-pr`.
    - Key decisions made during implementation
    - Deviations from the original plan
    - Anything the PR Reviewer needs to know before syncing and reviewing
-3. Report to human:
+3. Remove the worktree — the branch is safely on remote:
+   ```bash
+   cd ../spotify_ranker
+   git worktree remove ../spotify_ranker-T-XXX
+   ```
+4. Report to human:
    ```
    Branch feature/T-XXX-slug is ready for review.
+   Worktree ../spotify_ranker-T-XXX has been removed.
    Run /prepare-pr T-XXX when you want to open the PR.
    ```
-4. **Stop completely. Do not open a PR.**
+5. **Stop completely. Do not open a PR.**

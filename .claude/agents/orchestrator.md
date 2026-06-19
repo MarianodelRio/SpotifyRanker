@@ -64,13 +64,13 @@ Questions: [list genuine ambiguities, or write "None"]
 
 Wait for human confirmation or redirection. Do not proceed until confirmed.
 
-### Step 4 — Claim the task (branch creation = claim)
+### Step 4 — Claim the task (branch + worktree = claim)
 1. Update `tasks/T-XXX-slug.md` frontmatter:
    ```yaml
    status: IN_PROGRESS
    branch: feature/T-XXX-short-slug
    ```
-2. Create the branch and push — the push is the atomic claim:
+2. Create the branch, commit the claim, and push — the push is the atomic claim:
    ```bash
    git checkout -b feature/T-XXX-short-slug
    git add tasks/T-XXX-slug.md
@@ -81,15 +81,23 @@ Wait for human confirmation or redirection. Do not proceed until confirmed.
    - `git checkout master`
    - `git branch -D feature/T-XXX-short-slug`
    - Return to Step 1 and pick a different available task.
+4. Create a worktree for isolated parallel development:
+   ```bash
+   git worktree add ../spotify_ranker-T-XXX feature/T-XXX-short-slug
+   ```
+   All implementation (Steps 5–7) happens inside `../spotify_ranker-T-XXX/`. The main repo stays on `master`.
+
+   Worktree naming convention: `../spotify_ranker-T-XXX` where XXX is the zero-padded task number (e.g. `../spotify_ranker-T006`).
 
 ### Step 5 — Implement
-The branch already exists from Step 4. Implement directly on it:
+Work inside the worktree created in Step 4 (`../spotify_ranker-T-XXX/`). The branch already exists.
 1. Respect the folder ownership of the task's assigned agent
 2. Implement only what the task scope defines — no extras
 3. Use `design.md` as the authoritative source for contracts, schema, and API specs
 4. Do not modify `libs/common/models.py` or `libs/common/enums.py` without explicit human approval
 
 ### Step 6 — Verify before committing
+Run all checks from inside the worktree (`../spotify_ranker-T-XXX/`):
 ```bash
 pytest                                           # all tests pass
 ruff check . && ruff format --check .            # lint and format clean
@@ -107,18 +115,24 @@ git push -u origin feature/T-XXX-short-slug
 ```
 Do not open a PR. That is the PR Reviewer's job.
 
-### Step 8 — Mark ready for review
+### Step 8 — Mark ready for review and clean up worktree
 1. Update `tasks/T-XXX-slug.md` frontmatter:
    ```yaml
    status: READY_FOR_PR
    ```
 2. Update the `**Notes**` field in the task file body: key decisions, deviations from plan, anything the PR Reviewer should know.
-3. Report to human:
+3. Remove the worktree — the branch is safely on remote, it is no longer needed:
+   ```bash
+   cd ../spotify_ranker
+   git worktree remove ../spotify_ranker-T-XXX
+   ```
+4. Report to human:
    ```
    Branch feature/T-XXX-slug is ready for review.
+   Worktree ../spotify_ranker-T-XXX has been removed.
    Run /prepare-pr T-XXX when you want to open the PR.
    ```
-4. **Stop completely. Do not open a PR.**
+5. **Stop completely. Do not open a PR.**
 
 ## Folder Ownership Reference
 

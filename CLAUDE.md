@@ -155,6 +155,8 @@ Never commit directly to `master`. Every change goes through a PR.
 
 The existence of a remote branch `feature/T-XXX-*` is the coordination signal between parallel agents — it means that task is claimed. Branch creation in Step 4 is the claim; other agents skip tasks with an active branch.
 
+Each agent works in its own git worktree (`../spotify_ranker-T-XXX/`), not in the main repo. The main repo stays on `master` and is used only for workflow commands (`/orchestrate`, `/status`, `/prepare-pr`). See `docs/parallel_development.md` for the full setup.
+
 Task lifecycle: `TODO → IN_PROGRESS → READY_FOR_PR → PR_OPEN → DONE`
 
 Task status lives in the frontmatter of each `tasks/T-XXX-slug.md` file — not in a shared Status Board.
