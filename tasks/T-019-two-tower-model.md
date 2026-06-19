@@ -3,8 +3,8 @@ id: T-019
 phase: 2
 agent: ML/Ranking
 depends_on: [T-002]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-019-two-tower-model
 pr: ""
 ---
 
