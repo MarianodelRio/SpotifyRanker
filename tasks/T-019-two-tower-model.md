@@ -3,9 +3,9 @@ id: T-019
 phase: 2
 agent: ML/Ranking
 depends_on: [T-002]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-019-two-tower-model
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/5"
 ---
 
 ### T-019 — Two-Tower model definition
@@ -32,3 +32,4 @@ Both are 2-layer MLPs:
 - `F.normalize(..., p=2, dim=-1)` is used directly in `forward()` — no extra wrapper needed.
 - `input_dim` is a constructor parameter so both towers work with any feature vector length T-017 produces.
 - Tests cover: output shape, L2 norm ≈ 1.0, dot product ∈ [-1, 1], and `torch.save`/`torch.load` round-trip (using `weights_only=False` for full module serialization).
+- PR Reviewer: all 4 acceptance criteria confirmed met; 41 tests pass, ruff/mypy clean, libs/ coverage 100%. No design issues flagged.
