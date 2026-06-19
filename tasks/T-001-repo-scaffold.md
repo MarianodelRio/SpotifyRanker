@@ -3,7 +3,7 @@ id: T-001
 phase: 0
 agent: Architect
 depends_on: []
-status: PR_OPEN
+status: DONE
 branch: feature/T-001-repo-scaffold
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/1"
 ---
