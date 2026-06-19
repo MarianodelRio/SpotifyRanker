@@ -159,6 +159,8 @@ EOF
 [Deliberately out of scope — for awareness]
 
 **Recommendation:** APPROVE FOR HUMAN REVIEW / REVIEW CAREFULLY / DO NOT MERGE
+
+**After merging:** run `/done T-XXX` to mark this task complete and unblock dependent tasks.
 ---
 ```
 

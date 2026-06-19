@@ -179,7 +179,7 @@ See `docs/agent_workflow.md` for the full workflow definition.
 - Human must approve the plan before implementation starts (mandatory checkpoint).
 - Orchestrator reaches `READY_FOR_PR` — it never opens PRs.
 - PR Reviewer opens PRs when the human runs `/prepare-pr` — it never marks tasks `DONE`.
-- Human merges PRs and marks tasks `DONE` by updating the frontmatter in `tasks/T-XXX-slug.md`.
+- Human merges PRs and runs `/done T-XXX` to mark tasks `DONE`. The skill also reports which tasks are now unblocked.
 
 ---
 

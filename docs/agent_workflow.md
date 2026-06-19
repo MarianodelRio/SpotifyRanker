@@ -18,7 +18,7 @@ All implementation work flows through the Orchestrator. See `.claude/agents/orch
 5. After human approval: create branch `feature/T-XXX-slug` and push it as the claim (Step 4), implement, verify, push commits
 6. Update `tasks/T-XXX-slug.md` frontmatter: `status: READY_FOR_PR` — inform human, stop
 7. Human decides when to open PR: runs `/prepare-pr T-XXX` → PR Reviewer syncs with main, validates scope and criteria, runs checks, opens PR, outputs Human Review Summary → `status: PR_OPEN`
-8. Human reviews summary + PR on GitHub, merges → updates `status: DONE` in task file
+8. Human reviews summary + PR on GitHub, merges → runs `/done T-XXX` → task marked `DONE`, newly unblocked tasks listed
 
 Multiple chats can run the Orchestrator in parallel on different tasks simultaneously.
 
@@ -156,6 +156,7 @@ Skills are invoked via `/skill-name` in the Claude Code CLI or IDE extensions. T
 | `/prepare-pr [T-XXX]` | `.claude/commands/prepare-pr.md` | Sync branch with master, validate scope and criteria, run checks, open PR, output Human Review Summary |
 | `/status` | `.claude/commands/status.md` | Display current status aggregated from all `tasks/*.md` frontmatter |
 | `/explore` | `.claude/commands/explore.md` | Design exploration — evaluate options before writing code. Invokes Advisor for architectural questions. |
+| `/done [T-XXX]` | `.claude/commands/done.md` | Mark a merged task as `DONE` and list newly unblocked tasks. Run after merging a PR. |
 
 **Usage:**
 - `/orchestrate` — start when you want to implement a task. Syncs main, finds the best available task, consults Advisor if needed, presents a plan for your approval, implements, and stops at `READY_FOR_PR`.
