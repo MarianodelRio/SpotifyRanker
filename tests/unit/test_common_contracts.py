@@ -18,7 +18,6 @@ from libs.common.models import (
     UserProfile,
 )
 
-
 # --- Enum value tests ---
 
 
@@ -133,7 +132,6 @@ def test_feedback_entry_optional_playlist_id() -> None:
 
 
 def test_no_libs_imports_in_common() -> None:
-    import importlib
     import inspect
 
     import libs.common.enums as enums_mod
