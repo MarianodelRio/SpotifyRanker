@@ -3,7 +3,7 @@ id: T-011
 phase: 1
 agent: Frontend
 depends_on: [T-001]
-status: PR_OPEN
+status: DONE
 branch: feature/T-011-react-app-shell
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/3"
 ---
