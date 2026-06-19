@@ -3,8 +3,8 @@ id: T-003
 phase: 0
 agent: Data
 depends_on: [T-002]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-003-db-orm-models
 pr: ""
 ---
 
