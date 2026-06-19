@@ -3,7 +3,7 @@ id: T-003
 phase: 0
 agent: Data
 depends_on: [T-002]
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-003-db-orm-models
 pr: ""
 ---
@@ -31,4 +31,8 @@ Key constraints to implement:
 - Full mypy pass.
 
 **Notes**
-_Orchestrator fills after completion._
+- `SaveSource` enum (`spotify | app`) fue agregado a `libs/common/enums.py` (aprobado explícitamente — no estaba en T-002). El tipo TypeScript correspondiente fue agregado a `apps/frontend/src/types/api.ts`.
+- `auth` usa `spotify_user_id` como PK natural (sin UUID) según el schema de `design.md`.
+- `playlist_tracks` tiene PK UUID extra para facilitar referencias, más las dos UNIQUE constraints compuestas requeridas.
+- Todos los Enum SQLAlchemy usan nombre explícito (`name=`) para evitar colisiones en SQLite.
+- `score_breakdown` tipado como `dict[str, float] | None` para pasar mypy en modo strict.
