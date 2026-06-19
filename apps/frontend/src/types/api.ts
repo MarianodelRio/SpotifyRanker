@@ -67,3 +67,57 @@ export interface FeedbackEntry {
   source: PlaySource;
   playlist_id: string | null;
 }
+
+// Response shapes (used by the API client modules)
+
+export interface AuthStatus {
+  is_authenticated: boolean;
+  display_name: string | null;
+}
+
+export interface TokenResponse {
+  access_token: string;
+}
+
+export interface ImportProgress {
+  status: ImportStatus;
+  tracks_imported: number;
+  artists_imported: number;
+}
+
+export interface LibraryPage {
+  tracks: Track[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface SearchResult {
+  tracks: Track[];
+}
+
+export interface ModelStatus {
+  trained_at: string | null;
+  examples_count: number;
+  active_level: string;
+}
+
+export interface DeclaredItem {
+  spotify_id: string;
+  name: string;
+  type: "artist" | "playlist";
+}
+
+// Request shapes
+
+export interface PlayerEventRequest {
+  track_id: string;
+  ms_played: number;
+  source: PlaySource;
+  playlist_id: string | null;
+}
+
+export interface PlaylistGenerateRequest {
+  mode: PlaylistMode;
+  size: number;
+}
