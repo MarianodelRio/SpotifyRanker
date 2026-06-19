@@ -3,8 +3,8 @@ id: T-011
 phase: 1
 agent: Frontend
 depends_on: [T-001]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-011-react-app-shell
 pr: ""
 ---
 
