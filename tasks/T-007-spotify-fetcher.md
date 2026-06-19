@@ -1,0 +1,35 @@
+---
+id: T-007
+phase: 1
+agent: Backend/API
+depends_on: [T-005, T-006]
+status: TODO
+branch: ""
+pr: ""
+---
+
+### T-007 — Spotify data fetcher
+**Phase:** 1 | **Agent:** Backend/API | **Depends on:** T-005, T-006
+
+Build the Spotify API client capable of fetching all data needed for import and search. This is the only module allowed to call the Spotify Web API.
+
+**Scope — `libs/spotify/fetcher.py`**
+- Saved tracks (paginated, handles cursor-based pagination).
+- Top tracks: short-term, medium-term, long-term (up to 50 each).
+- Top artists: short-term, medium-term, long-term.
+- Artist albums (paginated).
+- Album tracks (paginated).
+- Track search (`q`, `type=track`, paginated).
+- Artist search (`q`, `type=artist`).
+- Playlist tracks (paginated).
+
+All methods handle rate limiting with exponential backoff on HTTP 429. All return domain models from `libs/common/`, not raw Spotify JSON.
+
+**Acceptance criteria**
+- All methods tested with mocked HTTP responses (no real Spotify calls in tests).
+- Rate limiting: on a 429 response, retries with backoff up to 3 times before raising.
+- Pagination: fetches all pages, not just the first.
+- Returns `list[Track]` or `list[Artist]` (common/ models), never raw dicts.
+
+**Notes**
+_Orchestrator fills after completion._

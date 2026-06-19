@@ -1,0 +1,29 @@
+---
+id: T-034
+phase: 4
+agent: ML/Ranking
+depends_on: [T-028, T-025]
+status: TODO
+branch: ""
+pr: ""
+---
+
+### T-034 — Evaluation metrics
+**Phase:** 4 | **Agent:** ML/Ranking | **Depends on:** T-028, T-025
+
+Add lightweight metrics to evaluate recommendation quality over time.
+
+**Scope**
+- `like_rate_on_generated`: fraction of generated playlist tracks that the user eventually liked (tracks `feedback='like'` where `playlist_id` is set). Updated on each feedback event.
+- `playlist_diversity_score`: average number of distinct artists and genres in the last 5 generated playlists.
+- `training_loss_history`: list of the last N training losses (already partially in TrainingResult).
+- All metrics available at `GET /model/status` (added to the response).
+- No external tracking, no dashboards — all computed from the local DB.
+
+**Acceptance criteria**
+- `GET /model/status` returns `like_rate`, `diversity_score`, and `loss_history`.
+- `like_rate` is accurate: if the user liked 5 of the last 10 generated tracks, it returns 0.5.
+- All metrics compute without errors on an empty history (return null or 0.0, not exceptions).
+
+**Notes**
+_Orchestrator fills after completion._
