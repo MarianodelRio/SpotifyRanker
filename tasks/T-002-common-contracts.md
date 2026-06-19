@@ -3,7 +3,7 @@ id: T-002
 phase: 0
 agent: Architect
 depends_on: [T-001]
-status: PR_OPEN
+status: DONE
 branch: feature/T-002-common-contracts
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/2"
 ---
