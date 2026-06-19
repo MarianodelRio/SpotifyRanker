@@ -3,9 +3,9 @@ id: T-019
 phase: 2
 agent: ML/Ranking
 depends_on: [T-002]
-status: TODO
-branch: ""
-pr: ""
+status: PR_OPEN
+branch: feature/T-019-two-tower-model
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/5"
 ---
 
 ### T-019 — Two-Tower model definition
@@ -28,4 +28,8 @@ Both are 2-layer MLPs:
 - Models are serializable via `torch.save` and loadable via `torch.load`.
 
 **Notes**
-_Orchestrator fills after completion._
+- `UserTower` and `ItemTower` are identical 2-layer MLPs; they differ only in name so they can be saved and loaded independently.
+- `F.normalize(..., p=2, dim=-1)` is used directly in `forward()` — no extra wrapper needed.
+- `input_dim` is a constructor parameter so both towers work with any feature vector length T-017 produces.
+- Tests cover: output shape, L2 norm ≈ 1.0, dot product ∈ [-1, 1], and `torch.save`/`torch.load` round-trip (using `weights_only=False` for full module serialization).
+- PR Reviewer: all 4 acceptance criteria confirmed met; 41 tests pass, ruff/mypy clean, libs/ coverage 100%. No design issues flagged.
