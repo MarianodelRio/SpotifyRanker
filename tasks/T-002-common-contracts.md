@@ -3,8 +3,8 @@ id: T-002
 phase: 0
 agent: Architect
 depends_on: [T-001]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-002-common-contracts
 pr: ""
 ---
 
