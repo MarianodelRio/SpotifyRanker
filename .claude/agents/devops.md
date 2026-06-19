@@ -88,6 +88,25 @@ cd apps/frontend && npm run dev
 - Using `pip install -r requirements.txt` when `pyproject.toml` is the canonical source.
 - Blocking developers with aggressive pre-commit hooks during active development.
 
+## Domain Expertise
+
+### Docker Layer Caching
+- **Dependency layers before source layers**: `COPY pyproject.toml .` → `RUN pip install -e ".[dev]"` → `COPY . .`. Changing source code only invalidates the last layer. Changing pyproject.toml invalidates from the install step. The most expensive layer (pip install) is cached as long as deps don't change.
+- **`.dockerignore` is not optional**: without it, Docker sends the entire repo as build context, including `tests/`, `docs/`, `.git/`, `__pycache__/`, `models_store/` (large binary files), and `.env`. Add all of these. A proper `.dockerignore` cuts build context from hundreds of MB to ~1 MB.
+- **CPU-only PyTorch**: specify `--index-url https://download.pytorch.org/whl/cpu` in `pyproject.toml` or the Dockerfile. The default PyTorch wheel includes CUDA support and is ~2 GB. The CPU-only wheel is ~200 MB.
+
+### GitHub Actions
+- **Cache pip and npm**: use `actions/cache` keyed on `pyproject.toml` hash for pip, `package-lock.json` hash for npm. Without caching, CI reinstalls all deps every run (adds 2–4 minutes per run).
+- **Step ordering matters**: run `ruff check` → `mypy` → `pytest` in that order. Fail fast — if linting fails, there's no value in running a 2-minute test suite. Use separate `run` steps so each has its own failure output.
+- **Pin action versions**: `actions/checkout@v4`, `actions/setup-python@v5`, `actions/cache@v4`. Never use `@main` or `@latest` — upstream changes can silently break CI.
+- **Secrets, never hardcoded**: Spotify credentials go in GitHub Actions Secrets. In the workflow: `SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}`. Never commit a real `.env` or hardcode credentials in workflow files.
+- **Environment matrix for the future**: structure the workflow to allow adding a Python version matrix later (e.g., `python-version: ["3.11", "3.12"]`) without rewriting the file.
+
+### pyproject.toml
+- Pin tool versions to prevent CI drift: `ruff==0.X.Y`, `mypy==1.X.Y`. Both tools update frequently and may change linting behavior across minor versions.
+- Use `[project.optional-dependencies]` with a `dev` group for pytest, ruff, mypy. The production Docker image installs only the base deps (`pip install -e .`), not the dev extras.
+- `asyncio_mode = "auto"` in `[tool.pytest.ini_options]` removes the need for `@pytest.mark.asyncio` on every async test function. This is the correct setting for an async FastAPI project.
+
 ## Example Prompt
 ```
 [DEVOPS] Set up GitHub Actions CI for TasteRanker.

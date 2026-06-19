@@ -93,6 +93,29 @@ ruff check db/ libs/feedback/
 - Hardcoding the DB path instead of reading from environment config.
 - Using synchronous SQLAlchemy with an async FastAPI app (use async session throughout).
 
+## Domain Expertise
+
+### Async SQLAlchemy
+- **AsyncSession is not thread-safe**: one session per request, always injected via `get_db()`. Never store a session in a module-level variable, a class attribute, or share it across concurrent operations.
+- **Lazy loading raises `MissingGreenlet` in async context**: SQLAlchemy's default lazy loading strategy is synchronous. For any relationship you'll access after the initial query, use `selectinload()` or `joinedload()` eagerly. Accessing `track.artists` in a loop after a plain `SELECT * FROM tracks` will raise at runtime.
+- **Use `await session.execute(select(...))`, not `session.query()`**: the old-style `query()` API is synchronous. Always use the 2.0-style `select()` statement with `await session.execute()`.
+- **Commit explicitly**: always `await session.commit()` at the end of a write operation. Don't rely on context manager auto-commit — make transaction boundaries obvious in the code.
+
+### Upsert Patterns
+- Use `insert(...).on_conflict_do_update(index_elements=["spotify_id"], set_={...})` for upserts. Never use `try: insert; except IntegrityError: update` — that pattern has a race condition and is slower.
+- The conflict target is always `spotify_id` (the Spotify-issued natural key). The internal `id` (UUID) must never change after first insert — it's referenced by other tables as a foreign key.
+- Fields to NOT overwrite on upsert: `id`, `created_at`, cumulative counters (`play_count`, `like_count`). Only update mutable metadata: `title`, `image_url`, `popularity`, `duration_ms`.
+
+### Query Optimization
+- **Identify N+1 before writing the query**: if you're fetching a list and then accessing a relationship in a loop, that's N+1. Use `selectinload(Track.artists)` or `selectinload(Track.genres)` in the initial `select()`.
+- **SQLite WAL mode**: for concurrent read-while-write (import runs in background while user browses library), set `PRAGMA journal_mode=WAL` on engine creation via `connect_args={"check_same_thread": False}` + event listener. Without WAL, reads block during import.
+- **Indexes on `WHERE` columns**: `spotify_id` (every entity — already the conflict target), `user_track_data.is_saved`, `play_events.track_id`, `play_events.played_at`. Missing indexes cause full table scans that grow linearly with library size.
+
+### Transaction Boundaries
+- Feedback + play event update in `record_play_event()` must be a single transaction: if the `user_track_data` update fails, the `play_events` append should also roll back — they represent the same user action.
+- Import is a long-running operation. Commit in batches of 50 tracks: full-import-as-one-transaction risks losing all progress if the operation times out or crashes mid-import.
+- The retraining trigger in `check_and_trigger()` must read the feedback count in the same transaction as the debounce check — otherwise two concurrent calls can both pass the threshold check and launch two training jobs.
+
 ## Example Prompt
 ```
 [FEATURE] Implement the DB repositories (T-006).

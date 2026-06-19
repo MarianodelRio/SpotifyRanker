@@ -124,6 +124,25 @@ def test_candidate_deduplicator_removes_known_tracks():
     # Does not cover: dedup across sources (see test_generator_dedup_across_sources).
 ```
 
+## Domain Expertise
+
+### pytest Patterns
+- **Fixture scope matters**: use `function` scope (default) for anything with mutable state. Use `session` scope for expensive read-only setup like DB schema creation. Mismatched scope causes tests to bleed state into each other.
+- **`@pytest.mark.parametrize` over copy-pasting**: if three test cases differ only in input/expected values, use `parametrize`. Three similar test functions are three times the maintenance surface.
+- **Factories over hardcoded fixtures for complex objects**: for `Track` and `UserProfile`, a factory function with sensible defaults is more flexible than a single hardcoded fixture. `make_track(spotify_id="x", popularity=80)` is clearer than a fixture where you have to remember all the irrelevant fields.
+- **Don't use `@pytest.fixture` for simple constants**: module-level variables are simpler and don't require injection. Use fixtures for objects that need setup/teardown (DB sessions, mock clients) or that should be shared via conftest.
+
+### ML Testing Patterns
+- **Never train a real model in a unit test**: create a `TowerPair` with random weights instead. The test verifies behavior (score range, output shape, determinism) — not that the model learned anything.
+- **Property tests for score bounds**: `score_candidates()` must always return values in [-1, 1] regardless of input. Test this with multiple random inputs using `@pytest.mark.parametrize` with varied vector dimensions and magnitudes.
+- **Diversifier tests need a controlled playlist**: to test "no more than 3 tracks per artist", create a list of 10 tracks all from the same artist and verify the output has ≤3. This exposes the constraint more clearly than a realistic playlist.
+- **Training loss convergence test**: train for 5 epochs on synthetic data (20 positive pairs) and assert `final_loss < initial_loss`. This catches NaN, exploding gradients, and completely broken training loops without needing real data.
+
+### Fixture Design
+- **Spotify response fixtures must be realistic**: use actual captured Spotify API responses (or close copies), not hand-crafted minimal dicts. The Spotify API has many optional fields — minimal fixtures miss edge cases that real responses hit.
+- **In-memory SQLite for all DB tests**: `sqlite:///:memory:` with `create_all()` in a function-scoped fixture. Never use a file-based SQLite in tests — it creates cleanup obligations and test interdependence.
+- **Mock at the boundary**: mock `SpotifyClient`, not internal functions. If testing `CandidateGenerator`, mock the `SpotifyClient` it receives — don't mock the internal `_fetch_artist_tracks()` method of `CandidateGenerator` itself.
+
 ## Example Prompt
 ```
 [TESTS] Write unit tests for the Ranker module (libs/ranker/).

@@ -177,6 +177,36 @@ Playing a track: `player.play({ uris: ['spotify:track:...'] })` via the Spotify 
 - Initializing the Spotify SDK synchronously without waiting for the ready callback.
 - Duplicating type definitions instead of using `src/types/api.ts`.
 
+## Domain Expertise
+
+### React Patterns
+- **State colocation first**: keep state in the component that owns it. Only lift to a parent when two siblings genuinely need the same value. Context is for truly global state (auth, player) — not intermediate shared state.
+- **Context for slow-changing globals only**: player state updates at most every second. Auth status barely changes. High-frequency updates (position_ms polling) must NOT go through context — they trigger re-renders in every consumer.
+- **Optimistic updates are mandatory for feedback**: apply the like/dislike state change immediately on user click, then revert only on API error. Waiting for the API response creates a perceptible lag.
+- **Custom hooks own SDK side effects**: wrap `window.Spotify.Player` initialization in a single `useEffect` with a cleanup returning `player.disconnect()`. Don't scatter SDK calls across components.
+- **Don't prematurely memoize**: add `useMemo`/`useCallback` only after profiling shows a real render cost. Adding them speculatively adds complexity with no measurable benefit.
+- **Key on stable IDs**: always `key={track.spotify_id}`, never `key={index}`. Index keys cause subtle state bugs when lists reorder.
+
+### Tailwind Design System
+- Use the standard Tailwind spacing scale: `p-2`, `p-4`, `p-6`, `p-8`, `gap-4`. Avoid arbitrary values like `p-[13px]` unless pixel-perfect fidelity to a design spec requires it.
+- Dark theme: use Tailwind's `dark:` variant via `class` strategy in `tailwind.config.ts` (not `media`). The app is dark-first.
+- Text hierarchy: `text-sm text-zinc-400` for secondary labels, `text-base text-white` for primary content, `text-xs text-zinc-500` for metadata (duration, album, timestamps).
+- Interactive elements: always include `hover:`, `focus-visible:`, and `disabled:` states. Never leave a clickable element without visible feedback on interaction.
+- Transitions: `transition-colors duration-150` on buttons and interactive elements. Avoid `transition-all` — it's expensive and animates things you don't intend.
+
+### Spotify Web Playback SDK
+- The SDK controls playback only — it cannot fetch library data. All Spotify API calls (saved tracks, top artists, search) go exclusively through the backend.
+- **Token expiry recovery**: when `authentication_error` fires, call `player.disconnect()`, re-fetch token from `GET /auth/token`, then reinitialize a new `Spotify.Player` instance. You cannot pass a new token to an existing instance.
+- **Playback transfer**: when the player initializes and gets a `device_id` on the `ready` event, it does NOT automatically become the active device. The backend must call `PUT /me/player` with the device ID to transfer playback to the browser.
+- **`player_state_changed` fires ~every 100ms during playback**: use this for progress bar display only. Never trigger API calls from this event directly — debounce or derive from the state.
+- **Spotify Premium required**: if `account_error` fires, show a clear user-facing message: "Spotify Premium is required for browser playback." Don't show a generic error.
+
+### Accessibility
+- Player controls must be `<button>` elements, not `<div onClick>`. Buttons are keyboard-navigable and have the correct ARIA role by default.
+- Icon-only buttons need `aria-label`: `<button aria-label="Play">▶</button>`.
+- Loading states: use `aria-busy="true"` on containers while fetching. Screen readers announce when loading completes.
+- Avoid `outline: none` without a replacement focus style. Use `focus-visible:ring-2` instead of suppressing focus entirely.
+
 ## Example Prompt
 ```
 [FEATURE] Implement PlayerPanel with Spotify Web Playback SDK (T-015).

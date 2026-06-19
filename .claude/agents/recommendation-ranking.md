@@ -123,6 +123,29 @@ See `design.md` section 10 for exact weight values.
 - Hardcoding mode weight values inline (they belong in `modes.py` constants).
 - Producing scores outside [-1, 1] without documenting the range.
 
+## Domain Expertise
+
+### Two-Tower Training
+- **In-batch negatives**: with batch size 32, each positive pair competes against 31 negatives. Larger batch = stronger learning signal but higher memory cost. For this MVP (CPU, <10K examples), batch size 32–64 is the right trade-off.
+- **Temperature τ = 0.1**: lower temperature sharpens the distribution (pushes scores toward ±1). If training loss oscillates or goes NaN, try τ = 0.07 or 0.2. Don't change it speculatively — test on synthetic data first.
+- **L2 normalization + dot product = cosine similarity**: when both towers output L2-normalized vectors, their dot product is bounded in [-1, 1] and equals cosine similarity. Never apply sigmoid or softmax afterward — the range is already correct.
+- **Gradient clipping**: if loss spikes or produces NaN, add `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` before `optimizer.step()`. This is a cheap safety net.
+- **`model.train()` vs `model.eval()`**: dropout is active in train mode and disabled in eval mode. Always call `model.eval()` before inference and `torch.no_grad()` to skip gradient computation. Forgetting this causes nondeterministic inference results.
+
+### Feature Engineering
+- **All features must be in [0, 1]**: raw counts (play_count, position in top list) must be min-max normalized. Compute min/max on the training set and save to `vocab.json` — use these same values at inference time. Never recompute normalization bounds at inference.
+- **Genre vocabulary is fixed at training time**: build it once from the training corpus, save to `vocab.json`. The feature vector dimension must remain constant — the model's `input_dim` must match. If a new genre appears at inference that wasn't in training, map it to an all-zero vector.
+- **Missing data → zero vector, not None**: a track with no genre data gets all zeros for its genre features. A user with no play history gets a zero-vector profile. The model must be trained on sparse inputs to handle this gracefully.
+
+### Cold Start
+- A new user has no `user_track_data`. `build_user_features()` must return a zero vector (not raise). The model produces a "popularity-biased" output as a cold-start fallback — this is acceptable behavior.
+- After import but before any feedback, the profile is built from saved/top tracks only. `ProfileBuilder.build()` must handle this case without degrading — import data is a valid signal.
+
+### Ranker Ordering Rules
+- **Sort before diversify, always**: rank all candidates by `final_score` descending, then greedily apply the diversifier. Running diversification before sorting loses quality — it would select diverse tracks before knowing which are best.
+- **`score_breakdown` is required**: every `RankedTrack` must include a populated `score_breakdown` dict. Keys: `base_score`, `artist_affinity_bonus`, `novelty_adjustment`, `popularity_adjustment`, `mode_weight`. This is exposed in the API and shown to the user for transparency — missing keys break the UI.
+- **Mode weights are multipliers, not overrides**: they adjust the Two-Tower base score, they don't replace it. A mode-weighted score still reflects the model's similarity signal — it's just shifted.
+
 ## Example Prompt
 ```
 [FEATURE] Implement the Two-Tower training loop with InfoNCE loss (T-020).

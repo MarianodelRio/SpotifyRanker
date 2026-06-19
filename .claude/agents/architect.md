@@ -74,6 +74,32 @@ mypy libs/ apps/api/
 - Over-engineering models for hypothetical future requirements.
 - Changing a model field type without confirming all consumers can handle the change.
 
+## Domain Expertise
+
+### Pydantic v2 Patterns
+- Use `model_config = ConfigDict(from_attributes=True)` for any model that maps to a SQLAlchemy ORM object. The deprecated `class Config` inner class causes silent failures in v2.
+- Prefer `field: Type | None = None` over `Optional[Type] = None`. Pydantic v2 handles both but the new union syntax is idiomatic.
+- Never add business logic (validators with side effects, computed properties that call external services) to `libs/common/models.py`. Models are data containers — validation at the boundary, not in the contract.
+- Use `model.model_json_schema()` after any model change to verify that the TypeScript types in `apps/frontend/src/types/api.ts` are still in sync. Schema drift causes silent type errors at runtime.
+
+### DAG Enforcement
+- The dependency rule is: if A imports B, B must appear upstream of A in the DAG. When reviewing a proposed import, draw it on the DAG mentally and check direction.
+- The symptom of a circular import is `ImportError: cannot import name '...' from partially initialized module`. Resolution: move the shared type to `libs/common/` (the only module with no upstream dependencies).
+- Any new import from one `libs/` module to another must be explicitly checked against the DAG in `CLAUDE.md`. "I need `UserProfile` from `libs/profile/`" is fine in `libs/candidates/` (profile is upstream of candidates). "I need `CandidateGenerator` from `libs/candidates/`" in `libs/profile/` is a DAG violation.
+- `libs/common/` must have zero imports from any other `libs/` module. It has no upstream — it is the root.
+
+### Contract Change Rules
+- **Non-breaking change**: adding a field with a default value. All consumers keep working. Still requires notifying the TypeScript types in the same PR.
+- **Breaking change**: renaming a field, changing its type, removing it, or making a previously-optional field required. All consumers must be updated in the same PR — never in a follow-up.
+- **Before approving a change**: run a grep for the field name across `libs/`, `apps/`, and `apps/frontend/src/types/api.ts` to find every consumer. List them all in the ADR or PR description.
+- Never approve a contract change "for future use" — add fields only when a module actively needs them now. Speculative fields accumulate tech debt and confuse consuming agents.
+
+### When to Write an ADR
+- Any decision that constrains two or more modules simultaneously.
+- Any deviation from the established DAG or contract policy.
+- Any choice whose reasoning is not obvious from the code (e.g., "why InfoNCE with τ=0.1 and not τ=0.07").
+- Any decision that was discussed and rejected — document what was considered and why it was rejected.
+
 ## Example Prompt
 ```
 [ARCHITECT] Review the proposal to add an `explanation: str` field to RankedTrack.

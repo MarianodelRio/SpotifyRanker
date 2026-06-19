@@ -107,6 +107,31 @@ ruff check apps/api/ libs/spotify/
 - Catching all exceptions silently in routers.
 - Creating background tasks that don't report their status.
 
+## Domain Expertise
+
+### FastAPI Async Rules
+- **Never call blocking I/O in an async endpoint**: no `time.sleep()`, no `requests.get()`, no synchronous file reads. Use `await asyncio.sleep()`, `httpx.AsyncClient`, and async file I/O. Blocking inside an async endpoint stalls the entire server.
+- **httpx.AsyncClient must be a singleton**: instantiate once via DI in `dependencies.py`, not per-request. Creating a new client per request discards the connection pool — each call pays a full TCP handshake cost.
+- **Background tasks run after the response is sent**: `BackgroundTasks` in FastAPI execute after the HTTP response is returned to the client. Don't depend on their side effects being visible in the same request (e.g., don't check import status immediately after starting it).
+- **Use `yield` in DI for resources that need cleanup**: DB session, httpx client. FastAPI calls the code after `yield` as cleanup after the response. This is the correct pattern — not `finally` blocks in the endpoint.
+
+### OAuth PKCE
+- The `code_verifier` is generated at `/auth/login` time and must survive until `/auth/callback`. Store it in the DB `auth` table, not in memory — a process restart between login and callback would lose it otherwise.
+- Never log `access_token` or `refresh_token`. Log only expiry timestamps and the first 8 characters of the token prefix for debugging.
+- CORS: the frontend origin (`http://localhost:5173`) must be listed explicitly in `allow_origins`. `allow_credentials=True` is required if using cookies. Wildcard `*` does not work with credentials.
+- Token refresh: on a 401 from Spotify, attempt one refresh. If refresh fails, clear the stored tokens and return 401 to the client — don't retry in a loop.
+
+### Error Response Design
+- All errors return JSON with a `detail` field: `{"detail": "Human-readable message"}`. FastAPI's `HTTPException` does this automatically.
+- Never expose stack traces in error responses. In production (or even local dev when sharing), raw tracebacks reveal internal structure.
+- Translate Spotify errors to app errors: Spotify 403 on a restricted endpoint → HTTP 403 with `"detail": "This Spotify endpoint is not available for your account type"`. Don't surface Spotify's raw error to the frontend.
+- Import failures must update `auth.import_status` to `FAILED` with an error message — never leave status as `RUNNING` on crash.
+
+### Routers Stay Thin
+- A router function does three things: validate input, call one domain function, return the result. Target ~10 lines of logic. If it's growing, the logic belongs in a `libs/` module.
+- No `if/else` branching on business rules in routers. That logic belongs in the domain module it relates to.
+- No direct SQLAlchemy queries in routers. Use injected repositories from `db/repositories/`.
+
 ## Example Prompt
 ```
 [FEATURE] Implement SpotifyClient and fetcher (T-007).
