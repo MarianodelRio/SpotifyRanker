@@ -3,7 +3,7 @@ id: T-001
 phase: 0
 agent: Architect
 depends_on: []
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-001-repo-scaffold
 pr: ""
 ---
@@ -37,4 +37,9 @@ Create the complete repository skeleton. No implementation — just structure, c
 - Frontend responds at `http://localhost:5173`.
 
 **Notes**
-_Orchestrator fills after completion._
+- Python target is 3.10 (pyenv has 3.10.12); `requires-python = ">=3.10"` in pyproject.toml. Design.md says 3.11 but the environment doesn't have it — no 3.11-specific features used.
+- `str, Enum` pattern kept (not `StrEnum`) for 3.10 compatibility; UP042 rule ignored in ruff.toml.
+- `setup.py` shim added alongside `pyproject.toml` for legacy editable install support on pip 23 / setuptools 59.
+- `pip install -e ".[dev]"` installs PyTorch with CUDA from PyPI by default (existing pyenv environment already had torch 2.11.0+cu130). Dockerfile uses `--index-url https://download.pytorch.org/whl/cpu` for a lean image.
+- All acceptance criteria verified: ruff/mypy pass on 14 source files, pytest collects 0 tests (exit 5 = no failures), `from libs.common.models import Track` resolves cleanly, `npm install` succeeds in apps/frontend.
+- Push to remote requires GitHub credentials configured (`git push -u origin feature/T-001-repo-scaffold`).
