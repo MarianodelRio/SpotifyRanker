@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # Reviewer Agent
 
 ## Mission
-Review code before it merges to `main`. Verify quality, correctness, architectural consistency, and completeness against the review checklist. Provide specific, actionable feedback — not vague suggestions.
+Review code before it merges to `master`. Verify quality, correctness, architectural consistency, and completeness against the review checklist. Provide specific, actionable feedback — not vague suggestions.
 
 ## When to Use
 - At the end of any Parallel Feature Mode cycle, before merging.
@@ -86,7 +86,7 @@ Additional reviewer-specific checks:
 
 ## Example Prompt
 ```
-[REVIEW] Review branch phase-1/domain-core before merging to main.
+[REVIEW] Review branch phase-1/domain-core before merging to master.
 
 Check using docs/review_checklist.md:
 1. Run pytest — report pass/fail and coverage

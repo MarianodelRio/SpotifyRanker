@@ -43,7 +43,7 @@ All modules are stateless — they receive inputs and return outputs. No global 
 
 ## Integration Verification
 
-After merging any PR to `main`, run the full check before starting the next merge:
+After merging any PR to `master`, run the full check before starting the next merge:
 
 ```bash
 pytest                             # all tests pass
@@ -52,17 +52,17 @@ mypy libs/ apps/api/               # no type errors
 cd apps/frontend && npx tsc --noEmit  # no frontend type errors
 ```
 
-If a check fails after a merge, stop and fix it before proceeding. A broken `main` blocks all parallel work.
+If a check fails after a merge, stop and fix it before proceeding. A broken `master` blocks all parallel work.
 
 ---
 
 ## How to Check That a Task's Dependencies Are Truly Done
 
-Before picking a task, verify that its dependencies are not just marked `DONE` in `task.md` but are actually merged into `main`:
+Before picking a task, verify that its dependencies are not just marked `DONE` in `task.md` but are actually merged into `master`:
 
 ```bash
-git log --oneline main | head -20   # see what's merged
-git diff main..HEAD                 # what your branch adds
+git log --oneline master | head -20   # see what's merged
+git diff master..HEAD                 # what your branch adds
 ```
 
 If a dependency PR is in `PR_OPEN` state but not yet merged, wait or coordinate with the human to merge it first.

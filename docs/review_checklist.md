@@ -1,6 +1,6 @@
 # Review Checklist — TasteRanker
 
-Use this checklist before merging any branch into `main`.
+Use this checklist before merging any branch into `master`.
 
 ---
 
@@ -83,7 +83,7 @@ Use this checklist before merging any branch into `main`.
 - [ ] PR title starts with the task ID: `T-XXX: [short description]`
 - [ ] PR does not include changes unrelated to the task
 - [ ] PR description includes acceptance criteria checkboxes from `task.md`
-- [ ] PR does not contain merge commits from `main` (rebase before merging)
+- [ ] PR does not contain merge commits from `master` (rebase before merging)
 - [ ] Branch name follows `feature/T-XXX-short-slug` pattern
 
 ---

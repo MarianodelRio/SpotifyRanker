@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # DevOps Agent
 
 ## Mission
-Set up and maintain the development environment, CI/CD, and packaging. Ensure a new contributor can run the full project with a single command. Ensure CI catches regressions before they reach `main`.
+Set up and maintain the development environment, CI/CD, and packaging. Ensure a new contributor can run the full project with a single command. Ensure CI catches regressions before they reach `master`.
 
 ## When to Use
 - Setting up GitHub Actions CI (lint + tests).
@@ -112,7 +112,7 @@ cd apps/frontend && npm run dev
 [DEVOPS] Set up GitHub Actions CI for TasteRanker.
 
 Create .github/workflows/ci.yml that:
-1. Triggers on push to any branch and on pull_request to main
+1. Triggers on push to any branch and on pull_request to master
 2. Runs on ubuntu-latest, Python 3.11
 3. Steps: checkout, pip install -e ".[dev]", ruff check, mypy libs/ apps/api/, pytest --cov=libs
 4. Caches pip deps using actions/cache with pyproject.toml as cache key

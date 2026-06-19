@@ -72,7 +72,7 @@ No implementation code.
 
 ### Integration Mode
 
-**When to use:** After multiple PRs merge to `main` and a Phase milestone needs to be verified end-to-end.
+**When to use:** After multiple PRs merge to `master` and a Phase milestone needs to be verified end-to-end.
 
 **Agents involved:** Architect Agent (leads), Reviewer Agent
 
@@ -153,7 +153,7 @@ Skills are invoked via `/skill-name` in the Claude Code CLI or IDE extensions. T
 | Skill | File | Description |
 |-------|------|-------------|
 | `/orchestrate` | `.claude/commands/orchestrate.md` | Sync main → pick task → human checkpoint → implement → push → mark `READY_FOR_PR` |
-| `/prepare-pr [T-XXX]` | `.claude/commands/prepare-pr.md` | Sync branch with main, validate scope and criteria, run checks, open PR, output Human Review Summary |
+| `/prepare-pr [T-XXX]` | `.claude/commands/prepare-pr.md` | Sync branch with master, validate scope and criteria, run checks, open PR, output Human Review Summary |
 | `/status` | `.claude/commands/status.md` | Display current status aggregated from all `tasks/*.md` frontmatter |
 | `/explore` | `.claude/commands/explore.md` | Design exploration — evaluate options before writing code. Invokes Advisor for architectural questions. |
 

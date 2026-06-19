@@ -323,15 +323,15 @@ main                          ← always stable and passing tests
 ### Integration Order
 
 ```
-phase-0/bootstrap        → main   (unlocks everything)
-phase-1/data             → main   (DB + feedback, no external deps)
-phase-1/domain-core      → main   (profile, depends on data)
-phase-1/backend-core     → main   (depends on domain-core)
-phase-1/frontend         → main   (depends on backend-core)
-phase-2/ml-ranking       → main   (depends on phase-1/data)
-phase-2/discovery-core   → main   (depends on ml-ranking + backend-core)
-phase-2/discovery-frontend → main (depends on discovery-core)
-phase-3/*                → main   (incremental, any order)
+phase-0/bootstrap        → master   (unlocks everything)
+phase-1/data             → master   (DB + feedback, no external deps)
+phase-1/domain-core      → master   (profile, depends on data)
+phase-1/backend-core     → master   (depends on domain-core)
+phase-1/frontend         → master   (depends on backend-core)
+phase-2/ml-ranking       → master   (depends on phase-1/data)
+phase-2/discovery-core   → master   (depends on ml-ranking + backend-core)
+phase-2/discovery-frontend → master (depends on discovery-core)
+phase-3/*                → master   (incremental, any order)
 ```
 
 ### Conflict Prevention Rules
@@ -412,7 +412,7 @@ phase-3/*                → main   (incremental, any order)
 
 ## 7. Quality Gates
 
-Every feature branch must satisfy all of the following before merging to main:
+Every feature branch must satisfy all of the following before merging to master:
 
 ### Tests
 - [ ] `pytest` passes with no errors.

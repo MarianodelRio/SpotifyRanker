@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # PR Reviewer Agent
 
 ## Mission
-Manage the `READY_FOR_PR → PR_OPEN` transition. Sync the branch with `origin/main`, validate scope and acceptance criteria, run all checks, open the PR, and produce a Human Review Summary so the human can review efficiently.
+Manage the `READY_FOR_PR → PR_OPEN` transition. Sync the branch with `origin/master`, validate scope and acceptance criteria, run all checks, open the PR, and produce a Human Review Summary so the human can review efficiently.
 
 ## When to Use
 - When the human runs `/prepare-pr` on a task in `READY_FOR_PR` state.
@@ -39,10 +39,10 @@ git fetch origin
 ```
 Verify the branch exists on remote: `git branch -r | grep feature/T-XXX-slug`
 
-### Step 3 — Sync with origin/main
+### Step 3 — Sync with origin/master
 ```bash
 git checkout feature/T-XXX-slug
-git rebase origin/main
+git rebase origin/master
 ```
 
 **If rebase has conflicts:**
@@ -51,7 +51,7 @@ git rebase origin/main
 
 ### Step 4 — Review diff
 ```bash
-git diff origin/main...HEAD
+git diff origin/master...HEAD
 ```
 
 Check:

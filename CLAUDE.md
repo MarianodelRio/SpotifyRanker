@@ -105,7 +105,7 @@ npm run lint                       # eslint
 npx tsc --noEmit                   # type check
 ```
 
-All four must pass before any merge to `main`.
+All four must pass before any merge to `master`.
 
 ---
 
@@ -147,11 +147,11 @@ Rules:
 ## Branch Policy
 
 ```
-main                          ← always stable, all checks passing
+master                        ← always stable, all checks passing
 feature/T-XXX-short-slug      ← one branch per task (Orchestrator creates these)
 ```
 
-Never commit directly to `main`. Every change goes through a PR.
+Never commit directly to `master`. Every change goes through a PR.
 
 Task lifecycle: `TODO → IN_PROGRESS → READY_FOR_PR → PR_OPEN → DONE`
 

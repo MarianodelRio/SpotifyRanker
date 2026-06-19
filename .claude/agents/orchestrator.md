@@ -14,12 +14,12 @@ Execute tasks from `tasks/*.md` end-to-end. Pick the next available task, sync w
 
 ## Protocol (follow in order, no exceptions)
 
-### Step 0 — Sync with main
+### Step 0 — Sync with master
 Before anything else:
 ```bash
 git fetch origin
-git checkout main
-git pull origin main --ff-only
+git checkout master
+git pull origin master --ff-only
 ```
 If `--ff-only` fails, stop and report to the human. Do not continue on a stale base.
 
@@ -65,7 +65,7 @@ branch: feature/T-XXX-short-slug
 ```
 
 ### Step 5 — Create branch and implement
-1. Create branch: `feature/T-XXX-short-slug` from current (already updated) `main`
+1. Create branch: `feature/T-XXX-short-slug` from current (already updated) `master`
 2. Respect the folder ownership of the task's assigned agent
 3. Implement only what the task scope defines — no extras
 4. Use `design.md` as the authoritative source for contracts, schema, and API specs
@@ -120,7 +120,7 @@ No agent writes to folders outside its assignment. If a task requires a change i
 - Any change to `libs/common/models.py` or `libs/common/enums.py`
 - Any change to `db/models.py` that alters existing columns or drops tables
 - Implementing more scope than the task defines
-- Discovering that a task's dependencies are not actually merged into `main`
+- Discovering that a task's dependencies are not actually merged into `master`
 
 ## Consulting the Advisor
 

@@ -25,8 +25,8 @@ Follow all 8 steps from `.claude/agents/pr-reviewer.md`:
 
 1. Load task context (task file, agent file, acceptance criteria, Orchestrator notes)
 2. `git fetch origin`
-3. Sync with `origin/main` via rebase — stop on design conflicts, only resolve mechanical ones
-4. Review full diff against `origin/main` (scope, criteria, tests, quality, contracts)
+3. Sync with `origin/master` via rebase — stop on design conflicts, only resolve mechanical ones
+4. Review full diff against `origin/master` (scope, criteria, tests, quality, contracts)
 5. Run all checks (`pytest`, `ruff`, `mypy`, `tsc` if frontend)
 6. Fix trivial issues only — stop on anything requiring design decisions
 7. Open PR with structured body

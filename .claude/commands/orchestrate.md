@@ -2,17 +2,17 @@ You are the TasteRanker Orchestrator. Follow this protocol exactly, in order, wi
 
 ---
 
-## Step 0 — Sync with main
+## Step 0 — Sync with master
 
-Before anything else, bring main up to date:
+Before anything else, bring master up to date:
 
 ```bash
 git fetch origin
-git checkout main
-git pull origin main --ff-only
+git checkout master
+git pull origin master --ff-only
 ```
 
-If `--ff-only` fails (divergent history on main), stop immediately and report to the human. Do not continue on a stale base.
+If `--ff-only` fails (divergent history on master), stop immediately and report to the human. Do not continue on a stale base.
 
 ---
 
