@@ -18,9 +18,16 @@ If `--ff-only` fails (divergent history on master), stop immediately and report 
 
 ## Step 1 — Find the best available task
 
-Read all files in `tasks/*.md`. Parse the frontmatter of each to find tasks where:
+First, check which tasks are already claimed by active remote branches:
+```bash
+git branch -r | grep "origin/feature/T-"
+```
+Extract the task ID from each branch name (`origin/feature/T-006-db-repositories` → T-006).
+
+Read all files in `tasks/*.md`. Parse the frontmatter of each to find tasks where **all three** are true:
 - `status: TODO`
 - Every task ID in `depends_on` has `status: DONE` in its own task file
+- No remote branch `origin/feature/T-XXX-*` exists for it
 
 Pick the task that unblocks the most other tasks (count how many tasks list this one in their `depends_on`). On ties: earlier phase, then critical path position.
 
@@ -93,23 +100,31 @@ Questions: [genuine ambiguities, or "None"]
 
 ---
 
-## Step 4 — Claim the task
+## Step 4 — Claim the task (branch creation = claim)
 
-Update `tasks/T-XXX-slug.md` frontmatter:
-```yaml
-status: IN_PROGRESS
-branch: feature/T-XXX-short-slug
-```
+1. Update `tasks/T-XXX-slug.md` frontmatter:
+   ```yaml
+   status: IN_PROGRESS
+   branch: feature/T-XXX-short-slug
+   ```
+2. Create the branch and push — the push is the atomic claim:
+   ```bash
+   git checkout -b feature/T-XXX-short-slug
+   git add tasks/T-XXX-slug.md
+   git commit -m "chore(T-XXX): claim [IN_PROGRESS]"
+   git push -u origin feature/T-XXX-short-slug
+   ```
+3. If `git push` fails (branch already exists on remote → another agent claimed it first):
+   - `git checkout master`
+   - `git branch -D feature/T-XXX-short-slug`
+   - Return to Step 1 and pick a different available task.
 
 ---
 
-## Step 5 — Create branch and implement
+## Step 5 — Implement
 
-```bash
-git checkout -b feature/T-XXX-short-slug
-```
+The branch already exists from Step 4. Implement directly on it:
 
-Rules:
 - Only touch folders allowed by the task's assigned agent file
 - Only implement what the task scope defines — nothing beyond it
 - Use `design.md` as the authoritative source for contracts, schema, and API specs

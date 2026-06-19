@@ -15,7 +15,7 @@ All implementation work flows through the Orchestrator. See `.claude/agents/orch
 2. Read all `tasks/*.md` frontmatter — find tasks where `status: TODO` and all deps are `DONE`
 3. Pick the highest-priority available task (maximize unblocked tasks, prefer critical path)
 4. Study the task and present a **mandatory human checkpoint** before writing any code
-5. After human approval: create branch `feature/T-XXX-slug`, implement, verify, push
+5. After human approval: create branch `feature/T-XXX-slug` and push it as the claim (Step 4), implement, verify, push commits
 6. Update `tasks/T-XXX-slug.md` frontmatter: `status: READY_FOR_PR` — inform human, stop
 7. Human decides when to open PR: runs `/prepare-pr T-XXX` → PR Reviewer syncs with main, validates scope and criteria, runs checks, opens PR, outputs Human Review Summary → `status: PR_OPEN`
 8. Human reviews summary + PR on GitHub, merges → updates `status: DONE` in task file

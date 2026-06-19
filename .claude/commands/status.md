@@ -1,5 +1,17 @@
+First, fetch remote branches and extract which tasks are claimed:
+```bash
+git fetch origin
+git branch -r | grep "origin/feature/T-"
+```
+Extract task IDs from branch names (e.g. `origin/feature/T-006-db-repositories` → T-006).
+
 Read all files in `tasks/*.md`. Parse the frontmatter of each file to extract:
 `id`, `phase`, `agent`, `depends_on`, `status`, `branch`, `pr`.
+
+Cross-reference frontmatter with remote branches to detect stale states:
+- Branch exists but frontmatter says `TODO` → ⚠️ stale (agent crashed before committing claim)
+- Frontmatter says `IN_PROGRESS` but no remote branch exists → ⚠️ stale (agent crashed before push)
+Show these in a separate **⚠️ Stale** section — do not count them as available or in-progress.
 
 Then display the current project status in this format:
 
@@ -21,7 +33,7 @@ Then display the current project status in this format:
 [All tasks with status: IN_PROGRESS — ID, title, branch, assigned agent]
 
 ### 🟢 Available now (can be picked up)
-[All tasks with status: TODO where every task in depends_on has status: DONE]
+[All tasks with status: TODO, all deps DONE, AND no remote branch origin/feature/T-XXX-* exists]
 [For each: ID, title, assigned agent, count of tasks it unblocks]
 [Mark ⭐ tasks on the critical path:]
 [Critical path: T-001→T-002→T-003→T-004→T-006→T-010→T-018→T-020→T-021→T-022→T-024→T-025→T-026]
@@ -29,6 +41,12 @@ Then display the current project status in this format:
 ### 🔴 Blocked
 [All tasks with status: TODO where at least one task in depends_on is not DONE]
 [For each: ID, title, blocked by: T-XXX (current status of blocker)]
+
+### ⚠️ Stale (needs human attention)
+[Tasks where frontmatter and remote branch state are inconsistent]
+[Branch exists but status: TODO → agent crashed before committing claim]
+[status: IN_PROGRESS but no remote branch → agent crashed before push]
+[For each: ID, title, inconsistency description, suggested fix]
 
 ---
 

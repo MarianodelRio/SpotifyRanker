@@ -153,6 +153,8 @@ feature/T-XXX-short-slug      ← one branch per task (Orchestrator creates thes
 
 Never commit directly to `master`. Every change goes through a PR.
 
+The existence of a remote branch `feature/T-XXX-*` is the coordination signal between parallel agents — it means that task is claimed. Branch creation in Step 4 is the claim; other agents skip tasks with an active branch.
+
 Task lifecycle: `TODO → IN_PROGRESS → READY_FOR_PR → PR_OPEN → DONE`
 
 Task status lives in the frontmatter of each `tasks/T-XXX-slug.md` file — not in a shared Status Board.

@@ -24,9 +24,16 @@ git pull origin master --ff-only
 If `--ff-only` fails, stop and report to the human. Do not continue on a stale base.
 
 ### Step 1 — Find an available task
-Read all `tasks/*.md` files. Parse frontmatter. A task is available when:
+First, check which tasks are already claimed by active remote branches:
+```bash
+git branch -r | grep "origin/feature/T-"
+```
+Extract the task ID from each branch name (`origin/feature/T-006-db-repositories` → T-006).
+
+Read all `tasks/*.md` files. Parse frontmatter. A task is available when **all three** are true:
 - `status: TODO`
 - Every ID in `depends_on` has `status: DONE` in its own task file
+- No remote branch `origin/feature/T-XXX-*` exists for it
 
 Prefer tasks that unblock the most other tasks. On ties: earlier phase, then critical path position.
 
@@ -57,19 +64,30 @@ Questions: [list genuine ambiguities, or write "None"]
 
 Wait for human confirmation or redirection. Do not proceed until confirmed.
 
-### Step 4 — Claim the task
-Update `tasks/T-XXX-slug.md` frontmatter:
-```yaml
-status: IN_PROGRESS
-branch: feature/T-XXX-short-slug
-```
+### Step 4 — Claim the task (branch creation = claim)
+1. Update `tasks/T-XXX-slug.md` frontmatter:
+   ```yaml
+   status: IN_PROGRESS
+   branch: feature/T-XXX-short-slug
+   ```
+2. Create the branch and push — the push is the atomic claim:
+   ```bash
+   git checkout -b feature/T-XXX-short-slug
+   git add tasks/T-XXX-slug.md
+   git commit -m "chore(T-XXX): claim [IN_PROGRESS]"
+   git push -u origin feature/T-XXX-short-slug
+   ```
+3. If `git push` fails (branch already exists on remote → another agent claimed it first):
+   - `git checkout master`
+   - `git branch -D feature/T-XXX-short-slug`
+   - Return to Step 1 and pick a different available task.
 
-### Step 5 — Create branch and implement
-1. Create branch: `feature/T-XXX-short-slug` from current (already updated) `master`
-2. Respect the folder ownership of the task's assigned agent
-3. Implement only what the task scope defines — no extras
-4. Use `design.md` as the authoritative source for contracts, schema, and API specs
-5. Do not modify `libs/common/models.py` or `libs/common/enums.py` without explicit human approval
+### Step 5 — Implement
+The branch already exists from Step 4. Implement directly on it:
+1. Respect the folder ownership of the task's assigned agent
+2. Implement only what the task scope defines — no extras
+3. Use `design.md` as the authoritative source for contracts, schema, and API specs
+4. Do not modify `libs/common/models.py` or `libs/common/enums.py` without explicit human approval
 
 ### Step 6 — Verify before committing
 ```bash
@@ -170,7 +188,8 @@ Include the Advisor's recommendation in the human checkpoint presentation.
 - Pushing with failing tests, lint errors, or type errors
 - Implementing bonus features beyond the task scope
 - Consulting the Advisor for tasks fully defined in `design.md`
-- Continuing on a stale main base (always run Step 0 first)
+- Continuing on a stale master base (always run Step 0 first)
+- Creating the branch in Step 5 — the branch is the claim and must exist before implementation starts
 
 ## Example Prompt
 ```
