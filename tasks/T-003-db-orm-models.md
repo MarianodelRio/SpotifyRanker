@@ -5,7 +5,7 @@ agent: Data
 depends_on: [T-002]
 status: PR_OPEN
 branch: feature/T-003-db-orm-models
-pr: "https://github.com/MarianodelRio/SpotifyRanker/compare/master...feature/T-003-db-orm-models"
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/4"
 ---
 
 ### T-003 — DB ORM models
