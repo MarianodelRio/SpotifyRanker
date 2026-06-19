@@ -7,16 +7,27 @@ class PlaylistMode(str, Enum):
     adventurous = "adventurous"
 
 
-class CandidateSource(str, Enum):
-    saved = "saved"
-    top_tracks = "top_tracks"
-    related_artist = "related_artist"
-    search = "search"
-
-
 class FeedbackType(str, Enum):
     like = "like"
     dislike = "dislike"
+
+
+class ImportStatus(str, Enum):
+    idle = "idle"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class CandidateSource(str, Enum):
+    artist_discography = "artist_discography"
+    genre_search = "genre_search"
+
+
+class PlaySource(str, Enum):
+    my_music = "my_music"
+    search = "search"
+    discover = "discover"
 
 
 class TimeRange(str, Enum):
