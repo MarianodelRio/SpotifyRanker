@@ -3,9 +3,9 @@ id: T-001
 phase: 0
 agent: Architect
 depends_on: []
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-001-repo-scaffold
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/1"
 ---
 
 ### T-001 — Repo setup and project scaffold
