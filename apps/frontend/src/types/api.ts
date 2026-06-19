@@ -10,6 +10,8 @@ export type CandidateSource = "artist_discography" | "genre_search";
 
 export type PlaySource = "my_music" | "search" | "discover";
 
+export type SaveSource = "spotify" | "app";
+
 export type TimeRange = "short_term" | "medium_term" | "long_term";
 
 // Models

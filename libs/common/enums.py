@@ -30,6 +30,11 @@ class PlaySource(str, Enum):
     discover = "discover"
 
 
+class SaveSource(str, Enum):
+    spotify = "spotify"
+    app = "app"
+
+
 class TimeRange(str, Enum):
     short_term = "short_term"
     medium_term = "medium_term"
