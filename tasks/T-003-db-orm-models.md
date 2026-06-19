@@ -3,9 +3,9 @@ id: T-003
 phase: 0
 agent: Data
 depends_on: [T-002]
-status: TODO
-branch: ""
-pr: ""
+status: PR_OPEN
+branch: feature/T-003-db-orm-models
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/4"
 ---
 
 ### T-003 — DB ORM models
@@ -31,4 +31,10 @@ Key constraints to implement:
 - Full mypy pass.
 
 **Notes**
-_Orchestrator fills after completion._
+- `SaveSource` enum (`spotify | app`) fue agregado a `libs/common/enums.py` (aprobado explícitamente — no estaba en T-002). El tipo TypeScript correspondiente fue agregado a `apps/frontend/src/types/api.ts`.
+- `auth` usa `spotify_user_id` como PK natural (sin UUID) según el schema de `design.md`.
+- `playlist_tracks` tiene PK UUID extra para facilitar referencias, más las dos UNIQUE constraints compuestas requeridas.
+- Todos los Enum SQLAlchemy usan nombre explícito (`name=`) para evitar colisiones en SQLite.
+- `score_breakdown` tipado como `dict[str, float] | None` para pasar mypy en modo strict.
+- PR Reviewer: `gh` CLI no instalado — PR debe abrirse manualmente. Todos los checks pasan: 32/32 tests, ruff OK, mypy OK, cobertura `db/models.py` 100%.
+- Riesgo menor: `Album.artist_id` anotado como `Mapped[str]` pero `nullable=True` — debería ser `Mapped[str | None]`. No causa error en runtime (SQLAlchemy respeta el `nullable=True`) pero es una inconsistencia de tipo.
