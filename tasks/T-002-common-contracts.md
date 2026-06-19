@@ -3,9 +3,9 @@ id: T-002
 phase: 0
 agent: Architect
 depends_on: [T-001]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-002-common-contracts
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/2"
 ---
 
 ### T-002 — Common contracts (models + enums)
