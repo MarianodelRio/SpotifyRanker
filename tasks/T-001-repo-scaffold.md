@@ -3,8 +3,8 @@ id: T-001
 phase: 0
 agent: Architect
 depends_on: []
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-001-repo-scaffold
 pr: ""
 ---
 

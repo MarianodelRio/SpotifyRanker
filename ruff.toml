@@ -1,0 +1,10 @@
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501", "UP042"]
+exclude = ["apps/frontend", ".venv", "build", "dist"]
+
+[lint.isort]
+known-first-party = ["libs", "apps", "db"]
