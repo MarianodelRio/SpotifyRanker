@@ -3,9 +3,9 @@ id: T-007
 phase: 1
 agent: Backend/API
 depends_on: [T-005, T-006]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-007-spotify-fetcher
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/11"
 ---
 
 ### T-007 — Spotify data fetcher
@@ -36,3 +36,4 @@ All methods handle rate limiting with exponential backoff on HTTP 429. All retur
 - `SpotifyFetcher` in `libs/spotify/fetcher.py` wraps `SpotifyClient` with all 8 fetch methods; all return domain models.
 - `fetch_artist_albums` returns `list[dict]` (raw) since albums don't map to a domain model in `common/`; all others return `list[Track]` or `list[Artist]`.
 - 29 new tests across `test_spotify_client.py` and `test_spotify_fetcher.py`; full suite 145 passed, mypy and ruff clean.
+- PR Reviewer: flagged that `get_paginated()` second-page requests bypass retry/refresh logic (direct `_http.get()` on absolute `next` URLs). Acceptable for MVP — Spotify rarely 429s mid-pagination, and token refreshes between pages would require more complex state management. Worth revisiting if flakiness appears in integration testing.
