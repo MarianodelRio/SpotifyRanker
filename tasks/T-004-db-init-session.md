@@ -3,7 +3,7 @@ id: T-004
 phase: 0
 agent: Data
 depends_on: [T-003]
-status: PR_OPEN
+status: DONE
 branch: feature/T-004-db-init-session
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/6"
 ---
