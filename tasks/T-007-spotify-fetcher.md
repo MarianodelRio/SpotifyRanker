@@ -3,8 +3,8 @@ id: T-007
 phase: 1
 agent: Backend/API
 depends_on: [T-005, T-006]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-007-spotify-fetcher
 pr: ""
 ---
 
@@ -32,4 +32,7 @@ All methods handle rate limiting with exponential backoff on HTTP 429. All retur
 - Returns `list[Track]` or `list[Artist]` (common/ models), never raw dicts.
 
 **Notes**
-_Orchestrator fills after completion._
+- Implemented `SpotifyClient` in `libs/spotify/client.py` (not mentioned in the original scope but required by the agent spec) — handles auth headers, 401 token refresh via injected `refresh_fn`, and 429 exponential backoff up to 3 retries. `get_paginated()` follows Spotify's `next` cursor automatically.
+- `SpotifyFetcher` in `libs/spotify/fetcher.py` wraps `SpotifyClient` with all 8 fetch methods; all return domain models.
+- `fetch_artist_albums` returns `list[dict]` (raw) since albums don't map to a domain model in `common/`; all others return `list[Track]` or `list[Artist]`.
+- 29 new tests across `test_spotify_client.py` and `test_spotify_fetcher.py`; full suite 145 passed, mypy and ruff clean.
