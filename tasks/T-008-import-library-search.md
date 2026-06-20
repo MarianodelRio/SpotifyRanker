@@ -3,8 +3,8 @@ id: T-008
 phase: 1
 agent: Backend/API
 depends_on: [T-007]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-008-import-library-search
 pr: ""
 ---
 
@@ -34,4 +34,9 @@ On `POST /import/start`: launch a background task that:
 - `/search` returns results from Spotify but writes nothing to DB.
 
 **Notes**
-_Orchestrator fills after completion._
+- Background task uses `AsyncSessionLocal` directly for a fresh session independent of the request session (FastAPI BackgroundTasks execute after response).
+- Artist genre linking via direct `ArtistGenre` ORM insert with `on_conflict_do_nothing` — no changes to `db/repositories/` needed.
+- `GET /library` uses a direct JOIN query on the session (same pattern as auth.py) since UserTrackDataRepository has no join method.
+- Track records upserted without album_id/artist-link — Track domain model carries only `artist_name` string. Artist records from `fetch_top_artists()` fully linked with genres.
+- `/search` proxies to SpotifyFetcher and closes client after each request; writes nothing to DB.
+- 17 new integration tests; 170 total passing.
