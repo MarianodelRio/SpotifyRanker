@@ -3,8 +3,8 @@ id: T-010
 phase: 1
 agent: Domain Core
 depends_on: [T-006]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-010-profile-builder
 pr: ""
 ---
 
@@ -31,4 +31,8 @@ All computations are pure functions of DB state. No side effects, no Spotify API
 - Full unit test coverage with in-memory SQLite fixtures.
 
 **Notes**
-_Orchestrator fills after completion._
+- Followed task spec: `build_profile(session: AsyncSession) → UserProfile` reads from DB directly (consistent with CLAUDE.md "profile: stateless, reads from DB"). This diverges from the domain-core agent file which says "no DB access in libs/profile/", but the task spec is authoritative.
+- Signal weights taken verbatim from design.md §10. Per-track weight uses `max()` of applicable signals to avoid double-counting when a track is both saved and liked.
+- `known_track_ids` includes ALL tracks with a `user_track_data` row (including dislikes/skips, as specified).
+- `diversity_score` normalized as `min(active_genres / 10, 1.0)` where active = genres with weight > 0.1.
+- 11 unit tests with in-memory SQLite; 89/89 suite pass; mypy + ruff clean.
