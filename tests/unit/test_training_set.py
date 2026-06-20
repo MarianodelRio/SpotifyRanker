@@ -1,5 +1,6 @@
 """Tests for build_training_set — signal labeling and weighting logic."""
 
+import numpy as np
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -74,7 +75,9 @@ async def test_saved_spotify_label(session):
 
 async def test_app_like_label(session):
     await _add_track(session, "t1")
-    await _add_utd(session, "t1", is_saved=True, save_source=SaveSource.app, feedback=FeedbackType.like)
+    await _add_utd(
+        session, "t1", is_saved=True, save_source=SaveSource.app, feedback=FeedbackType.like
+    )
     await session.commit()
 
     examples = await build_training_set(session, _empty_profile())
@@ -218,6 +221,6 @@ async def test_training_example_has_numpy_feature_arrays(session):
     examples = await build_training_set(session, _empty_profile())
     ex = examples[0]
     assert isinstance(ex, TrainingExample)
-    assert isinstance(ex.user_features, type(ex.user_features))  # np.ndarray
-    assert isinstance(ex.track_features, type(ex.track_features))
+    assert isinstance(ex.user_features, np.ndarray)
+    assert isinstance(ex.track_features, np.ndarray)
     assert ex.track_id == "t1"
