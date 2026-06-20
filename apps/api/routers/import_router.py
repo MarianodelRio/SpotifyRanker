@@ -8,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.config import Settings, get_settings
 from db.engine import AsyncSessionLocal
 from db.models import Artist, ArtistGenre, Auth, UserTrackData
 from db.repositories import (
@@ -119,7 +118,6 @@ async def _run_import(spotify_user_id: str, access_token: str) -> None:
 async def start_import(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> dict[str, Any]:
     result = await db.execute(select(Auth))
     auth = result.scalars().first()
