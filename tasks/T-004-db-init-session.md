@@ -3,8 +3,8 @@ id: T-004
 phase: 0
 agent: Data
 depends_on: [T-003]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-004-db-init-session
 pr: ""
 ---
 
