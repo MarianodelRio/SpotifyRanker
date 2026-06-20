@@ -3,8 +3,8 @@ id: T-015
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-009]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-015-player-panel
 pr: ""
 ---
 
@@ -28,4 +28,10 @@ Integrate the Spotify Web Playback SDK and build the right-column player. This i
 - Token is refreshed automatically if the SDK reports auth errors.
 
 **Notes**
-_Orchestrator fills after completion._
+- `PlayerProvider` wraps the authenticated app inside `AuthProvider`, so the SDK only initializes after login.
+- Position tracking (`positionMs`) is stored in a ref, not context state — this prevents every context consumer from re-rendering every second during playback. `PlayerPanel` reads position via `getPositionMs()` callback on its own 1s interval.
+- `player_state_changed` fires ~100ms during playback; only `isPlaying` and track-switch detection are derived from it. No API calls are triggered directly from this event.
+- Playback transfer (`PUT /me/player`) is called automatically when the SDK emits `ready` with a device_id, making the browser the active Spotify Connect device.
+- `authentication_error` triggers `player.disconnect()` + reinitialize with a fresh token from `GET /auth/token`.
+- `TrackCard` component created at `src/components/track/TrackCard.tsx` — ready for T-013 (Mi música) and T-014 (Buscar) to import.
+- Like/dislike buttons in `PlayerPanel` and `TrackCard` are rendered but wired to no-op — T-016 owns that logic.
