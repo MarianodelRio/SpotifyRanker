@@ -3,7 +3,7 @@ id: T-023
 phase: 2
 agent: Domain Core
 depends_on: [T-010, T-007]
-status: PR_OPEN
+status: DONE
 branch: feature/T-023-candidate-generator
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/14"
 ---
