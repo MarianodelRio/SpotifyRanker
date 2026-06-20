@@ -8,12 +8,9 @@ import numpy as np
 from libs.common.models import Track, UserProfile
 
 _TOP_ARTISTS = 20
-# Scalar features appended after genre slots and artist slots:
-# [global_like_ratio, diversity_score] for user
-# [norm_track_popularity, norm_artist_popularity, is_unknown_artist, release_recency] for track
-# Both vectors have length: len(vocab) + _TOP_ARTISTS + 2
-# (track's 4 scalars vs user's 2 scalars means different tail — see build_* for layout)
-# Actual fixed dim = len(vocab) + _TOP_ARTISTS + 4; user's last 2 slots are always 0.
+# Fixed vector dim = len(vocab) + _TOP_ARTISTS + 4 for both user and track.
+# User  tail: [global_like_ratio, diversity_score, 0, 0]       (last 2 zero-padded)
+# Track tail: [norm_track_pop, norm_artist_pop, is_unknown_artist, release_recency]
 
 
 def build_genre_vocab(genres: list[str]) -> list[str]:
