@@ -3,9 +3,9 @@ id: T-006
 phase: 1
 agent: Data
 depends_on: [T-004]
-status: TODO
-branch: ""
-pr: ""
+status: PR_OPEN
+branch: feature/T-006-db-repositories
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/7"
 ---
 
 ### T-006 — DB repositories
@@ -25,4 +25,11 @@ Each repository receives a `Session` in its constructor. Exposes methods needed 
 - Full mypy pass.
 
 **Notes**
-_Orchestrator fills after completion._
+- All 8 repositories in `db/repositories/`, one file per entity. `__init__.py` re-exports all for clean imports.
+- Upserts use `sqlalchemy.dialects.sqlite.insert(...).on_conflict_do_update()` — no try/except, atomic.
+- `id` and `created_at` not in `set_={}` on any upsert — internal UUIDs are stable across reimports.
+- `play_count` intentionally absent from `UserTrackDataRepository.upsert()` — managed by feedback processor (T-009).
+- `AuthRepository.get_auth()` is argless (single-user, returns first row with `.limit(1)`).
+- `get_top_by_affinity()` joins `track_artists → user_track_data`, orders by `SUM(play_count)`.
+- **PR Reviewer notes**: `PlaylistRepository.create()` and `PlayEventRepository.append()` accept `mode`/`source` as `str` rather than the enum types — functionally fine for SQLAlchemy but reduces type safety. Not a blocker; can be tightened in a later task. The `assert row is not None` guards after upsert+select are technically stripped by `-O` but are acceptable in this internal DB layer.
+- 78 tests pass (33 new). mypy, ruff clean. 92% coverage on `db/repositories/`.
