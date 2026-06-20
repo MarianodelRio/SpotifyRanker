@@ -3,7 +3,7 @@ id: T-004
 phase: 0
 agent: Data
 depends_on: [T-003]
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-004-db-init-session
 pr: ""
 ---
@@ -24,4 +24,8 @@ Create the database engine, session factory, and initialization script.
 - Running `init_db.py` twice does not raise errors (idempotent).
 
 **Notes**
-_Orchestrator fills after completion._
+- Added `aiosqlite>=0.20.0` to `pyproject.toml` (required by SQLAlchemy async engine for SQLite; was missing from dependencies).
+- WAL mode is enabled via a sync-engine event listener on SQLite connections — allows concurrent reads during background import.
+- `init_db.py` uses `conn.run_sync(Base.metadata.create_all)` via the async engine so no separate sync engine is needed.
+- `get_db()` commits on success and rolls back on any exception before re-raising — FastAPI dependency injection compatible.
+- Table count in tests is 11 (auth + 10 domain tables); design.md schema section lists auth separately but it is part of the same `Base`.
