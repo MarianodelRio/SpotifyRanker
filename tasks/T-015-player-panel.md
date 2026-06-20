@@ -3,7 +3,7 @@ id: T-015
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-009]
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-015-player-panel
 pr: ""
 ---
