@@ -3,7 +3,7 @@ id: T-015
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-009]
-status: PR_OPEN
+status: DONE
 branch: feature/T-015-player-panel
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/16"
 ---
