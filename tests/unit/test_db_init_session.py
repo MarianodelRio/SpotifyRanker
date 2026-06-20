@@ -18,6 +18,8 @@ EXPECTED_TABLES = {
     "playlists",
     "playlist_tracks",
     "auth",
+    "declared_artists",
+    "declared_playlists",
 }
 
 
@@ -32,7 +34,7 @@ async def memory_engine():
 
 
 async def test_create_tables_creates_all_expected_tables(memory_engine):
-    """All 11 ORM tables should be created."""
+    """All 13 ORM tables should be created."""
     async with memory_engine.connect() as conn:
         table_names = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
     assert set(table_names) == EXPECTED_TABLES

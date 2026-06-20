@@ -36,6 +36,22 @@ class SpotifyFetcher:
         items = await self._client.get_paginated("/me/top/artists", time_range=time_range, limit=50)
         return [_parse_artist(item) for item in items if item]
 
+    # ── Artist metadata ───────────────────────────────────────────────────────
+
+    async def fetch_artist(self, artist_id: str) -> Artist:
+        data = await self._client.get(f"/artists/{artist_id}")
+        return _parse_artist(data)
+
+    async def fetch_artist_top_tracks(self, artist_id: str) -> list[Track]:
+        data = await self._client.get(f"/artists/{artist_id}/top-tracks", market="from_token")
+        return [_parse_track(item) for item in data.get("tracks", []) if item]
+
+    # ── Playlist metadata ─────────────────────────────────────────────────────
+
+    async def fetch_playlist_info(self, playlist_id: str) -> dict[str, Any]:
+        data = await self._client.get(f"/playlists/{playlist_id}", fields="id,name")
+        return {"spotify_id": data.get("id", playlist_id), "name": data.get("name", "")}
+
     # ── Artist albums ─────────────────────────────────────────────────────────
 
     async def fetch_artist_albums(self, artist_id: str) -> list[dict[str, Any]]:
