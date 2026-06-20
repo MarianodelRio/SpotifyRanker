@@ -3,8 +3,8 @@ id: T-023
 phase: 2
 agent: Domain Core
 depends_on: [T-010, T-007]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-023-candidate-generator
 pr: ""
 ---
 
@@ -26,4 +26,8 @@ Build the candidate generation module that fetches unknown tracks from Spotify f
 - With an empty profile (no affinities), returns an empty list gracefully (no errors).
 
 **Notes**
-_Orchestrator fills after completion._
+- Implemented two sources: `artist_discography` (top-10 artists by affinity, albums → tracks, capped at 150) and `genre_search` (top-5 genres via Spotify search, capped at 150).
+- `deduplicator.py` runs after all sources are aggregated; upserts unique tracks into DB via `TrackRepository`.
+- `CandidateGenerator.generate()` merges both source lists (artist_discography first for priority trimming), enforces 500-candidate hard cap, then deduplicates.
+- `session` is injected into `generate()` per task spec; only `deduplicator.py` touches the DB — sources remain pure async functions.
+- 14 unit tests, all passing; full suite (167 tests) green; mypy clean.
