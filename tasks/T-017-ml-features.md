@@ -3,7 +3,7 @@ id: T-017
 phase: 2
 agent: ML/Ranking
 depends_on: [T-010]
-status: PR_OPEN
+status: DONE
 branch: feature/T-017-ml-features
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/15"
 ---
