@@ -3,9 +3,9 @@ id: T-008
 phase: 1
 agent: Backend/API
 depends_on: [T-007]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-008-import-library-search
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/17"
 ---
 
 ### T-008 — Import task + library + search endpoints
@@ -39,4 +39,7 @@ On `POST /import/start`: launch a background task that:
 - `GET /library` uses a direct JOIN query on the session (same pattern as auth.py) since UserTrackDataRepository has no join method.
 - Track records upserted without album_id/artist-link — Track domain model carries only `artist_name` string. Artist records from `fetch_top_artists()` fully linked with genres.
 - `/search` proxies to SpotifyFetcher and closes client after each request; writes nothing to DB.
-- 17 new integration tests; 170 total passing.
+- 17 new integration tests; 184 total passing (after rebase onto post-T-018 master).
+- PR Reviewer: removed unused `settings: Settings = Depends(get_settings)` from `start_import` (trivial cleanup).
+- PR Reviewer flags: direct ORM model imports in routers (both `import_router.py` and `library_router.py` bypass the repository pattern per agent anti-patterns); `SpotifyClient` instantiated per-request in `/search` (not a singleton — see agent domain expertise). Both noted for human review; neither is a correctness issue for MVP.
+- PR #17: https://github.com/MarianodelRio/SpotifyRanker/pull/17
