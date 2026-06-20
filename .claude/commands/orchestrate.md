@@ -168,23 +168,29 @@ Do not open a PR. That is the PR Reviewer's job via `/prepare-pr`.
 
 ## Step 8 — Mark ready for review and clean up worktree
 
-1. Update `tasks/T-XXX-slug.md` frontmatter:
-   ```yaml
-   status: READY_FOR_PR
-   ```
-2. Update the `**Notes**` field in the task file body:
-   - Key decisions made during implementation
-   - Deviations from the original plan
-   - Anything the PR Reviewer needs to know before syncing and reviewing
-3. Remove the worktree — the branch is safely on remote:
+1. Remove the worktree — the branch is safely on remote:
    ```bash
    cd ../spotify_ranker
    git worktree remove ../spotify_ranker-T-XXX
    ```
-4. Report to human:
+2. Update the task status and notes on master:
+   Update `tasks/T-XXX-slug.md` frontmatter:
+   ```yaml
+   status: READY_FOR_PR
+   ```
+   Also update the `**Notes**` field in the task file body:
+   - Key decisions made during implementation
+   - Deviations from the original plan
+   - Anything the PR Reviewer needs to know before syncing and reviewing
+   ```bash
+   git add tasks/T-XXX-slug.md
+   git commit -m "chore(T-XXX): mark READY_FOR_PR"
+   git push origin master
+   ```
+3. Report to human:
    ```
    Branch feature/T-XXX-slug is ready for review.
    Worktree ../spotify_ranker-T-XXX has been removed.
    Run /prepare-pr T-XXX when you want to open the PR.
    ```
-5. **Stop completely. Do not open a PR.**
+4. **Stop completely. Do not open a PR.**

@@ -37,6 +37,12 @@ Update `tasks/T-XXX-slug.md` frontmatter:
 ```yaml
 status: DONE
 ```
+Commit and push to master:
+```bash
+git add tasks/T-XXX-slug.md
+git commit -m "chore(T-XXX): mark DONE"
+git push origin master
+```
 
 ---
 

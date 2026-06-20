@@ -64,23 +64,30 @@ Questions: [list genuine ambiguities, or write "None"]
 
 Wait for human confirmation or redirection. Do not proceed until confirmed.
 
-### Step 4 — Claim the task (branch + worktree = claim)
-1. Update `tasks/T-XXX-slug.md` frontmatter:
+### Step 4 — Claim the task (branch push = atomic claim)
+1. Create the branch and push — this is the atomic claim:
+   ```bash
+   git checkout -b feature/T-XXX-short-slug
+   git push -u origin feature/T-XXX-short-slug
+   ```
+2. If `git push` fails (branch already exists on remote → another agent claimed it first):
+   - `git checkout master`
+   - `git branch -D feature/T-XXX-short-slug`
+   - Return to Step 1 and pick a different available task.
+3. Update the task status on master — visible to all agents immediately:
+   ```bash
+   git checkout master
+   ```
+   Update `tasks/T-XXX-slug.md` frontmatter:
    ```yaml
    status: IN_PROGRESS
    branch: feature/T-XXX-short-slug
    ```
-2. Create the branch, commit the claim, and push — the push is the atomic claim:
    ```bash
-   git checkout -b feature/T-XXX-short-slug
    git add tasks/T-XXX-slug.md
-   git commit -m "chore(T-XXX): claim [IN_PROGRESS]"
-   git push -u origin feature/T-XXX-short-slug
+   git commit -m "chore(T-XXX): mark IN_PROGRESS"
+   git push origin master
    ```
-3. If `git push` fails (branch already exists on remote → another agent claimed it first):
-   - `git checkout master`
-   - `git branch -D feature/T-XXX-short-slug`
-   - Return to Step 1 and pick a different available task.
 4. Create a worktree for isolated parallel development:
    ```bash
    git worktree add ../spotify_ranker-T-XXX feature/T-XXX-short-slug
@@ -116,23 +123,29 @@ git push -u origin feature/T-XXX-short-slug
 Do not open a PR. That is the PR Reviewer's job.
 
 ### Step 8 — Mark ready for review and clean up worktree
-1. Update `tasks/T-XXX-slug.md` frontmatter:
-   ```yaml
-   status: READY_FOR_PR
-   ```
-2. Update the `**Notes**` field in the task file body: key decisions, deviations from plan, anything the PR Reviewer should know.
-3. Remove the worktree — the branch is safely on remote, it is no longer needed:
+1. Remove the worktree — the branch is safely on remote, it is no longer needed:
    ```bash
    cd ../spotify_ranker
    git worktree remove ../spotify_ranker-T-XXX
    ```
-4. Report to human:
+2. Update the task status and notes on master:
+   Update `tasks/T-XXX-slug.md` frontmatter:
+   ```yaml
+   status: READY_FOR_PR
+   ```
+   Also update the `**Notes**` field in the task file body: key decisions, deviations from plan, anything the PR Reviewer should know.
+   ```bash
+   git add tasks/T-XXX-slug.md
+   git commit -m "chore(T-XXX): mark READY_FOR_PR"
+   git push origin master
+   ```
+3. Report to human:
    ```
    Branch feature/T-XXX-slug is ready for review.
    Worktree ../spotify_ranker-T-XXX has been removed.
    Run /prepare-pr T-XXX when you want to open the PR.
    ```
-5. **Stop completely. Do not open a PR.**
+4. **Stop completely. Do not open a PR.**
 
 ## Folder Ownership Reference
 
@@ -204,6 +217,7 @@ Include the Advisor's recommendation in the human checkpoint presentation.
 - Consulting the Advisor for tasks fully defined in `design.md`
 - Continuing on a stale master base (always run Step 0 first)
 - Creating the branch in Step 5 — the branch is the claim and must exist before implementation starts
+- Modifying task files inside the worktree — all task status updates go to master only, never to the feature branch
 
 ## Example Prompt
 ```
