@@ -3,7 +3,7 @@ id: T-008
 phase: 1
 agent: Backend/API
 depends_on: [T-007]
-status: PR_OPEN
+status: DONE
 branch: feature/T-008-import-library-search
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/17"
 ---
