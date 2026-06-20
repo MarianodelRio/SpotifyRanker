@@ -3,8 +3,8 @@ id: T-005
 phase: 0
 agent: Backend/API
 depends_on: [T-004]
-status: TODO
-branch: ""
+status: IN_PROGRESS
+branch: feature/T-005-spotify-oauth
 pr: ""
 ---
 
