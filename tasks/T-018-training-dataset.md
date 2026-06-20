@@ -3,9 +3,9 @@ id: T-018
 phase: 2
 agent: ML/Ranking
 depends_on: [T-006, T-010]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-018-training-dataset
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/13"
 ---
 
 ### T-018 — Training dataset builder
@@ -31,3 +31,5 @@ Build the module that constructs the labeled training dataset from all user sign
 - Skip detection reads eager-loaded `PlayEvent.ms_played / Track.duration_ms < 0.1`.
 - 14 unit tests cover all signal combinations, the 200-track count guarantee, and max-label tie-break logic.
 - The `profile` parameter is accepted for API consistency but not used in T-018; T-020 uses it to compute user feature vectors.
+- PR Reviewer: fixed trivially-true `isinstance(x, type(x))` assertions in test — replaced with `isinstance(x, np.ndarray)`; added missing `import numpy as np` to test file. No production code changed.
+- Declared-artist and declared-playlist signals from design.md §10 are not implemented — DB schema has no SaveSource values for them. These will need to be added in a follow-up task when artist/playlist declaration features land.
