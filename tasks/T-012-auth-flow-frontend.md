@@ -3,8 +3,8 @@ id: T-012
 phase: 1
 agent: Frontend
 depends_on: [T-011, T-005]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-012-auth-flow-frontend
 pr: ""
 ---
 
@@ -28,4 +28,9 @@ Connect the frontend to the backend OAuth flow. After this task, the user can lo
 - Logout clears auth state and returns to login page.
 
 **Notes**
-_Orchestrator fills after completion._
+- Auth state managed via `useAuth` hook (checks `/auth/status` on mount, fetches SDK token when authenticated).
+- `AuthContext` split across two files to satisfy `react-refresh/only-export-components` lint rule: `context/auth-context.ts` (non-JSX, exports the context object) and `context/AuthContext.tsx` (exports only the `AuthProvider` component).
+- `useAuthContext` hook in its own `hooks/useAuthContext.ts` file for the same reason.
+- `token` from `GET /auth/token` is stored in auth state and available via `useAuthContext()` for the Spotify Web Playback SDK (T-015).
+- `LoginPage` redirects to `http://localhost:8000/auth/login` (hardcoded backend URL, consistent with the `apiFetch` base URL).
+- `tsc --noEmit` and `eslint --max-warnings 0` both pass. `node_modules` were missing from the main repo and installed via `docker run node:18-alpine npm install`.
