@@ -3,9 +3,9 @@ id: T-023
 phase: 2
 agent: Domain Core
 depends_on: [T-010, T-007]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-023-candidate-generator
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/14"
 ---
 
 ### T-023 — Candidate generator
@@ -31,3 +31,4 @@ Build the candidate generation module that fetches unknown tracks from Spotify f
 - `CandidateGenerator.generate()` merges both source lists (artist_discography first for priority trimming), enforces 500-candidate hard cap, then deduplicates.
 - `session` is injected into `generate()` per task spec; only `deduplicator.py` touches the DB — sources remain pure async functions.
 - 14 unit tests, all passing; full suite (167 tests) green; mypy clean.
+- PR Reviewer: trivial fix applied — added explanation comment to `type: ignore[assignment]` in `genre_search.py` (SpotifyFetcher.search returns a union; narrowed to list[Track] since type="track" is passed). Branch rebased onto master as a single clean implementation commit.
