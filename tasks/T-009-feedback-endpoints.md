@@ -3,7 +3,7 @@ id: T-009
 phase: 1
 agent: Data
 depends_on: [T-006]
-status: PR_OPEN
+status: DONE
 branch: feature/T-009-feedback-endpoints
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/10"
 ---
