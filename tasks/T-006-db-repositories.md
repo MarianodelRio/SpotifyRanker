@@ -3,7 +3,7 @@ id: T-006
 phase: 1
 agent: Data
 depends_on: [T-004]
-status: PR_OPEN
+status: DONE
 branch: feature/T-006-db-repositories
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/7"
 ---
