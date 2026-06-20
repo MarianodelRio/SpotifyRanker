@@ -3,7 +3,7 @@ id: T-005
 phase: 0
 agent: Backend/API
 depends_on: [T-004]
-status: PR_OPEN
+status: DONE
 branch: feature/T-005-spotify-oauth
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/8"
 ---
