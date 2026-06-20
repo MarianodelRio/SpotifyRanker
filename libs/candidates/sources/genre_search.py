@@ -31,7 +31,7 @@ async def fetch_genre_search_candidates(
             type="track",
             limit=_RESULTS_PER_GENRE,
         )
-        tracks: list[Track] = results  # type: ignore[assignment]
+        tracks: list[Track] = results  # type: ignore[assignment]  # search(type="track") always returns list[Track]
 
         for track in tracks:
             if len(candidates) >= _PER_SOURCE_CAP:
