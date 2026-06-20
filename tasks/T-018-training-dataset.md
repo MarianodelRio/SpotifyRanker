@@ -3,8 +3,8 @@ id: T-018
 phase: 2
 agent: ML/Ranking
 depends_on: [T-006, T-010]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-018-training-dataset
 pr: ""
 ---
 
@@ -26,4 +26,8 @@ Build the module that constructs the labeled training dataset from all user sign
 - Tested with a fixture DB populated with known signals.
 
 **Notes**
-_Orchestrator fills after completion._
+- `TrainingExample` dataclass defined in `libs/ml/training_set.py` (not in `libs/common/`) since it's ML-internal; `user_features`/`track_features` are empty numpy arrays — T-020 populates them via T-017's feature builders.
+- Signal weight table applied exactly as in design.md §10; max-label-wins rule prevents double-counting when multiple signals apply to the same track.
+- Skip detection reads eager-loaded `PlayEvent.ms_played / Track.duration_ms < 0.1`.
+- 14 unit tests cover all signal combinations, the 200-track count guarantee, and max-label tie-break logic.
+- The `profile` parameter is accepted for API consistency but not used in T-018; T-020 uses it to compute user feature vectors.
