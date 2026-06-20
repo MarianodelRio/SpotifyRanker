@@ -3,9 +3,9 @@ id: T-009
 phase: 1
 agent: Data
 depends_on: [T-006]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-009-feedback-endpoints
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/10"
 ---
 
 ### T-009 — Feedback + play event endpoints
@@ -32,4 +32,6 @@ Implement feedback persistence and play event recording. These are the two main 
 - `play_count` increment uses SQLite `user_track_data.play_count + 1` via `text()` inside `on_conflict_do_update` — no read-modify-write race.
 - `apps/api/routers/feedback.py` was added outside Data agent's usual `libs/feedback/` scope, justified by the task definition explicitly listing the API endpoints in scope. The router is thin wiring only.
 - Enum names use lowercase (`FeedbackType.like`, `PlaySource.my_music`) matching `libs/common/enums.py`.
-- 8 unit tests added, all passing. 113 total tests pass. mypy, ruff clean.
+- 8 unit tests added, all passing. 121 total tests pass post-rebase. mypy, ruff clean. `libs/feedback/processor.py` 100% coverage.
+- PR Reviewer: rebase was clean after resolving one mechanical conflict (task file status claim vs READY_FOR_PR on master). No design conflicts.
+- Watch: no HTTP-level integration tests for the endpoints — wiring is tested only by full suite passing. No FK validation in the endpoint (caller must pass a valid `track_id`).
