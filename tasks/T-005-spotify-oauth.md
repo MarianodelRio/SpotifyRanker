@@ -3,9 +3,9 @@ id: T-005
 phase: 0
 agent: Backend/API
 depends_on: [T-004]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-005-spotify-oauth
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/8"
 ---
 
 ### T-005 — Spotify OAuth PKCE
@@ -39,3 +39,6 @@ Implement the full Spotify OAuth 2.0 PKCE flow. This is the authentication found
 - All Spotify HTTP calls use `httpx.AsyncClient`; mocked with `unittest.mock` in tests (no `respx` dependency needed).
 - 27 tests: 15 unit (PKCE helpers + token functions) and 12 integration (all 5 endpoints including token auto-refresh and error paths).
 - `ruff check`, `ruff format`, `mypy`, `pytest` all green.
+- PR Reviewer: `# noqa: F401` on router import line is unnecessary (all 4 imports are genuinely used) — minor annotation noise, not worth a fix commit.
+- PR Reviewer: `test_session` fixture defined in test_auth_routes.py but not directly referenced by any test — harmless.
+- PR Reviewer: `Settings.SPOTIFY_CLIENT_ID` defaults to `""` rather than being required — enables tests but silently allows app start without real credentials.
