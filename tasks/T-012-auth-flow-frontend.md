@@ -3,9 +3,9 @@ id: T-012
 phase: 1
 agent: Frontend
 depends_on: [T-011, T-005]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-012-auth-flow-frontend
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/12"
 ---
 
 ### T-012 — Auth flow frontend
@@ -34,3 +34,4 @@ Connect the frontend to the backend OAuth flow. After this task, the user can lo
 - `token` from `GET /auth/token` is stored in auth state and available via `useAuthContext()` for the Spotify Web Playback SDK (T-015).
 - `LoginPage` redirects to `http://localhost:8000/auth/login` (hardcoded backend URL, consistent with the `apiFetch` base URL).
 - `tsc --noEmit` and `eslint --max-warnings 0` both pass. `node_modules` were missing from the main repo and installed via `docker run node:18-alpine npm install`.
+- PR Reviewer: rebase produced one mechanical conflict in the task file (IN_PROGRESS vs READY_FOR_PR metadata — resolved to keep READY_FOR_PR). The claim commit was absorbed into master's history; only the implementation commit remains. All 5 checks pass (153 pytest, ruff, mypy, tsc, eslint). One criterion requires manual browser testing: end-to-end OAuth flow with a running backend.
