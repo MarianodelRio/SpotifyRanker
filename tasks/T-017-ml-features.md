@@ -3,9 +3,9 @@ id: T-017
 phase: 2
 agent: ML/Ranking
 depends_on: [T-010]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-017-ml-features
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/15"
 ---
 
 ### T-017 — ML feature engineering
@@ -31,3 +31,5 @@ Build the feature vector builders that convert `UserProfile` and `Track` domain 
 - `_fixed_dim()` is exported from `libs/ml/features.py` and used directly by the Two-Tower models (T-018, T-019) to derive `input_dim`.
 - Vocab helpers (`build_genre_vocab`, `save_vocab`, `load_vocab`) are ready for use by the training dataset builder (T-018).
 - 30 unit tests, all passing. No DB, no network.
+- PR Reviewer note: the original feature branch had a stale `chore(T-015): claim [IN_PROGRESS]` commit that would have downgraded T-015's status on merge. The branch was rebuilt clean from origin/master via cherry-pick before opening the PR. The spurious commit came from git state confusion in the shared main-repo working directory during the orchestration session.
+- All checks at PR open: 197 tests passed (98% libs coverage), ruff clean, mypy clean (29 source files).
