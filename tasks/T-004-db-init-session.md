@@ -3,9 +3,9 @@ id: T-004
 phase: 0
 agent: Data
 depends_on: [T-003]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-004-db-init-session
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/6"
 ---
 
 ### T-004 — DB init and session factory
@@ -29,3 +29,4 @@ Create the database engine, session factory, and initialization script.
 - `init_db.py` uses `conn.run_sync(Base.metadata.create_all)` via the async engine so no separate sync engine is needed.
 - `get_db()` commits on success and rolls back on any exception before re-raising — FastAPI dependency injection compatible.
 - Table count in tests is 11 (auth + 10 domain tables); design.md schema section lists auth separately but it is part of the same `Base`.
+- PR Reviewer: all checks pass (pytest 45/45, ruff, mypy). `db/engine.py` and `db/session.py` show 0% coverage by design — tests use isolated in-memory engines. `get_db()` commits on every request including reads (harmless for SQLite).
