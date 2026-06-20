@@ -3,9 +3,9 @@ id: T-010
 phase: 1
 agent: Domain Core
 depends_on: [T-006]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-010-profile-builder
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/9"
 ---
 
 ### T-010 — Taste profile builder
@@ -36,3 +36,4 @@ All computations are pure functions of DB state. No side effects, no Spotify API
 - `known_track_ids` includes ALL tracks with a `user_track_data` row (including dislikes/skips, as specified).
 - `diversity_score` normalized as `min(active_genres / 10, 1.0)` where active = genres with weight > 0.1.
 - 11 unit tests with in-memory SQLite; 89/89 suite pass; mypy + ruff clean.
+- PR Reviewer: rebase was clean (one mechanical conflict in task file only). 116/116 pass after rebase. One architectural note for human: `known_track_ids` coverage of "played" source depends on T-009 maintaining the invariant that play events always create a user_track_data row — no test covers the play-count-only case. Non-blocking: behavior is correct if that invariant holds.
