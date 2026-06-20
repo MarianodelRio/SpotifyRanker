@@ -3,7 +3,7 @@ id: T-007
 phase: 1
 agent: Backend/API
 depends_on: [T-005, T-006]
-status: PR_OPEN
+status: DONE
 branch: feature/T-007-spotify-fetcher
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/11"
 ---
