@@ -3,7 +3,7 @@ id: T-018
 phase: 2
 agent: ML/Ranking
 depends_on: [T-006, T-010]
-status: PR_OPEN
+status: DONE
 branch: feature/T-018-training-dataset
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/13"
 ---
