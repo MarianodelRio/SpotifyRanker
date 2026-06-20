@@ -3,7 +3,7 @@ id: T-005
 phase: 0
 agent: Backend/API
 depends_on: [T-004]
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-005-spotify-oauth
 pr: ""
 ---
@@ -33,4 +33,9 @@ Implement the full Spotify OAuth 2.0 PKCE flow. This is the authentication found
 - Token is automatically refreshed when expired (test with a manually expired token).
 
 **Notes**
-_Orchestrator fills after completion._
+- PKCE `code_verifier` stored in a module-level dict (`_pending_verifiers`) keyed by `state`, not in the DB. The `auth` table has no `code_verifier` column; in-memory is sufficient for this single-user local app (human approved at checkpoint).
+- `apps/api/config.py` and `apps/api/dependencies.py` added alongside the router (both in scope for Backend/API).
+- CORS configured for `http://localhost:5173` in `main.py`.
+- All Spotify HTTP calls use `httpx.AsyncClient`; mocked with `unittest.mock` in tests (no `respx` dependency needed).
+- 27 tests: 15 unit (PKCE helpers + token functions) and 12 integration (all 5 endpoints including token auto-refresh and error paths).
+- `ruff check`, `ruff format`, `mypy`, `pytest` all green.
