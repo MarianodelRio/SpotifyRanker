@@ -3,9 +3,9 @@ id: T-015
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-009]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-015-player-panel
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/16"
 ---
 
 ### T-015 — PlayerPanel (Spotify Web Playback SDK)
@@ -35,3 +35,5 @@ Integrate the Spotify Web Playback SDK and build the right-column player. This i
 - `authentication_error` triggers `player.disconnect()` + reinitialize with a fresh token from `GET /auth/token`.
 - `TrackCard` component created at `src/components/track/TrackCard.tsx` — ready for T-013 (Mi música) and T-014 (Buscar) to import.
 - Like/dislike buttons in `PlayerPanel` and `TrackCard` are rendered but wired to no-op — T-016 owns that logic.
+- PR Reviewer: rebase required multiple rounds due to parallel agent activity on master during review (T-023 PR merged mid-session). Branch is clean onto current origin/master. End-to-end click-to-play acceptance criterion needs T-013/T-014 (section stubs don't render TrackCard yet).
+- `account_error` currently logs to console only — no visible user message. Low priority since Premium is required and known at onboarding.

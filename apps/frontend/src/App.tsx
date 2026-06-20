@@ -6,6 +6,7 @@ import Buscar from "./sections/Buscar";
 import Descubrir from "./sections/Descubrir";
 import { useAuth } from "./hooks/useAuth";
 import { AuthProvider } from "./context/AuthContext";
+import { PlayerProvider } from "./context/PlayerContext";
 
 function AppContent() {
   const auth = useAuth();
@@ -24,14 +25,16 @@ function AppContent() {
 
   return (
     <AuthProvider value={auth}>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<MiMusica />} />
-          <Route path="/buscar" element={<Buscar />} />
-          <Route path="/descubrir" element={<Descubrir />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppLayout>
+      <PlayerProvider>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<MiMusica />} />
+            <Route path="/buscar" element={<Buscar />} />
+            <Route path="/descubrir" element={<Descubrir />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppLayout>
+      </PlayerProvider>
     </AuthProvider>
   );
 }
