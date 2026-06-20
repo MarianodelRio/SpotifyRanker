@@ -3,8 +3,8 @@ id: T-009
 phase: 1
 agent: Data
 depends_on: [T-006]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-009-feedback-endpoints
 pr: ""
 ---
 
@@ -28,4 +28,8 @@ Implement feedback persistence and play event recording. These are the two main 
 - `play_count` increments correctly on each play event.
 
 **Notes**
-_Orchestrator fills after completion._
+- `record_play_event` uses a single transaction: `play_events` append + `user_track_data` upsert (play_count increment, last_played_at) commit together atomically.
+- `play_count` increment uses SQLite `user_track_data.play_count + 1` via `text()` inside `on_conflict_do_update` — no read-modify-write race.
+- `apps/api/routers/feedback.py` was added outside Data agent's usual `libs/feedback/` scope, justified by the task definition explicitly listing the API endpoints in scope. The router is thin wiring only.
+- Enum names use lowercase (`FeedbackType.like`, `PlaySource.my_music`) matching `libs/common/enums.py`.
+- 8 unit tests added, all passing. 113 total tests pass. mypy, ruff clean.
