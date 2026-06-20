@@ -1,12 +1,29 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
+import LoginPage from "./components/auth/LoginPage";
 import MiMusica from "./sections/MiMusica";
 import Buscar from "./sections/Buscar";
 import Descubrir from "./sections/Descubrir";
+import { useAuth } from "./hooks/useAuth";
+import { AuthProvider } from "./context/AuthContext";
 
-export default function App() {
+function AppContent() {
+  const auth = useAuth();
+
+  if (auth.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <span className="text-sm text-zinc-500">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!auth.isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
-    <BrowserRouter>
+    <AuthProvider value={auth}>
       <AppLayout>
         <Routes>
           <Route path="/" element={<MiMusica />} />
@@ -15,6 +32,14 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>
+    </AuthProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }
