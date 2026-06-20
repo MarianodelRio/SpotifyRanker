@@ -3,7 +3,7 @@ id: T-010
 phase: 1
 agent: Domain Core
 depends_on: [T-006]
-status: IN_PROGRESS
+status: DONE
 branch: feature/T-010-profile-builder
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/9"
 ---
