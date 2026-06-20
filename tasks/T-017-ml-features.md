@@ -3,7 +3,7 @@ id: T-017
 phase: 2
 agent: ML/Ranking
 depends_on: [T-010]
-status: IN_PROGRESS
+status: READY_FOR_PR
 branch: feature/T-017-ml-features
 pr: ""
 ---
@@ -26,4 +26,8 @@ Build the feature vector builders that convert `UserProfile` and `Track` domain 
 - Tested with synthetic UserProfile and Track objects (no DB required).
 
 **Notes**
-_Orchestrator fills after completion._
+- Vector dimension is `len(vocab) + 20 + 4` for both user and track (genre slots + 20 artist affinity slots + 4 scalar slots). User's last 2 scalar slots are zero-padded; track's artist-affinity slots (positions [len(vocab)..+19]) are zero-padded. Same fixed shape guaranteed.
+- `Track` has no `release_date` field, so `release_recency` is always 0.0. This is intentional — the slot is reserved and will become meaningful when the field is added (T-002 frozen contract).
+- `_fixed_dim()` is exported from `libs/ml/features.py` and used directly by the Two-Tower models (T-018, T-019) to derive `input_dim`.
+- Vocab helpers (`build_genre_vocab`, `save_vocab`, `load_vocab`) are ready for use by the training dataset builder (T-018).
+- 30 unit tests, all passing. No DB, no network.
