@@ -3,7 +3,7 @@ id: T-012
 phase: 1
 agent: Frontend
 depends_on: [T-011, T-005]
-status: PR_OPEN
+status: DONE
 branch: feature/T-012-auth-flow-frontend
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/12"
 ---
