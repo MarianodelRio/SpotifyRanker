@@ -3,9 +3,9 @@ id: T-029
 phase: 3
 agent: Backend/API
 depends_on: [T-007, T-018]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-029-onboarding-backend
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/18"
 ---
 
 ### T-029 — Onboarding backend
@@ -38,3 +38,10 @@ Cross-module changes required and approved by human:
 - `tests/unit/test_db_init_session.py`: updated expected table count (11 → 13).
 - `tests/unit/test_training_set.py`: 8 new tests covering all declared-signal cases.
 - `tests/integration/test_profile_router.py`: 9 integration tests covering all 5 endpoints.
+
+PR Reviewer observations:
+1. ArtistGenre links not populated during artist declaration — `genre_repo.get_or_create()` is called but the `artist_genres` join table is never written. Declared-artist tracks won't contribute to `genre_weights` in `build_profile()`. Not an acceptance criterion for this task but worth a follow-up task or inline fix.
+2. TrackArtist links not created for discography tracks — same gap; tracks imported via this endpoint lack artist links. Pre-existing pattern from import_router for saved tracks, but worsens here since the artist is known.
+3. `_POPULAR_THRESHOLD = 50` constant defined but never used (classification uses top-tracks set, not the field).
+4. `settings: Settings = Depends(get_settings)` injected in declare_artist/declare_playlist but never referenced inside the function body.
+5. `POST /profile/artist` runs synchronously — for artists with large catalogs (100+ albums) this will be slow and may hit request timeouts. Consider background task in a follow-up.
