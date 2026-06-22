@@ -3,9 +3,9 @@ id: T-020
 phase: 2
 agent: ML/Ranking
 depends_on: [T-017, T-018, T-019]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-020-training-loop
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/21"
 ---
 
 ### T-020 — Training loop (InfoNCE)
@@ -35,3 +35,4 @@ Implement the full training pipeline: build dataset, train UserTower + ItemTower
 - **InfoNCE implementation:** single-user setting means all user feature vectors are identical within a run. In-batch negatives are all items in the batch; loss computed only over positives (label ≥ 0.5), weighted by `example.weight`. Gradient clipping (max_norm=1.0) added as safety net per agent guidance.
 - **Track metadata query:** trainer does a separate `selectinload` DB query to load track → artist → genres for feature building, since `build_training_set` only returns `track_id`.
 - **212 unit tests pass.** 6 new tests added in `tests/unit/test_trainer.py`.
+- **PR Reviewer notes:** two acceptance criteria have no automated test — 1000-example <120s perf bound (verify manually) and explicit `device='cpu'` (CPU is used by default; no `.cuda()` call, but no `torch.device('cpu')` assignment either). Rebase skipped the `claim [IN_PROGRESS]` coordination commit due to mechanical conflict with the already-correct READY_FOR_PR status on master. Format fixes applied during review.
