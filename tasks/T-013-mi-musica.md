@@ -3,9 +3,9 @@ id: T-013
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-008]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-013-mi-musica
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/20"
 ---
 
 ### T-013 — Mi música section
