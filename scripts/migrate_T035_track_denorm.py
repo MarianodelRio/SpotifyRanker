@@ -2,6 +2,8 @@
 
 import asyncio
 
+from sqlalchemy import text
+
 from db.engine import engine
 
 
@@ -13,7 +15,7 @@ async def migrate() -> None:
             "ALTER TABLE tracks ADD COLUMN image_url TEXT",
         ):
             try:
-                await conn.execute(__import__("sqlalchemy").text(stmt))
+                await conn.execute(text(stmt))
                 print(f"OK: {stmt}")
             except Exception as e:
                 if "duplicate column name" in str(e).lower():
