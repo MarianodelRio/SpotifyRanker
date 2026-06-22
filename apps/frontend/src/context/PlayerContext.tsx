@@ -18,10 +18,10 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
 
   const playerRef = useRef<Spotify.Player | null>(null);
   const deviceIdRef = useRef<string | null>(null);
+  const devicePollAbortRef = useRef<AbortController | null>(null);
   const positionMsRef = useRef(0);
   const trackStartMsRef = useRef(0);
   const prevTrackIdRef = useRef<string | null>(null);
-  // Use a ref so the player_state_changed callback always has the latest source
   const currentSourceRef = useRef<PlaySource | null>(null);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
@@ -29,22 +29,45 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     return access_token;
   }, []);
 
-  const transferPlayback = useCallback(async (id: string) => {
-    const token = await getAccessToken();
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const res = await fetch(`${SPOTIFY_API}/me/player`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ device_ids: [id], play: false }),
-      });
-      if (res.status === 204) return;
-      if (res.status !== 404) return;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-  }, [getAccessToken]);
+  // Background diagnostic: poll /devices to see if SDK device ever registers.
+  // Does NOT gate playback — only used for logging.
+  const watchDeviceRegistration = useCallback(
+    async (id: string, signal?: AbortSignal): Promise<void> => {
+      const token = await getAccessToken();
+      for (let attempt = 0; attempt < 20; attempt++) {
+        if (signal?.aborted) return;
+        try {
+          const res = await fetch(`${SPOTIFY_API}/me/player/devices`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal,
+          });
+          const body = await res.text().catch(() => "");
+          if (res.ok) {
+            const data = JSON.parse(body) as { devices?: Array<{ id: string; name: string }> };
+            const devices = data.devices ?? [];
+
+            // Spotify may assign a different server-side id than the SDK's ready id.
+            // Match by name and use the server-assigned id for REST calls.
+            const myDevice = devices.find(d => d.name === "TasteRanker");
+            if (myDevice) {
+              if (myDevice.id !== id) {
+                console.log(`[Player] TasteRanker registered with server id=${myDevice.id} (SDK id was ${id})`);
+                deviceIdRef.current = myDevice.id;
+                setDeviceId(myDevice.id);
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          if (signal?.aborted) return;
+          console.warn("[Player] /devices poll error:", err);
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      console.warn(`[Player] ✗ device ${id} never appeared in /devices after 20s`);
+    },
+    [getAccessToken],
+  );
 
   const createAndConnectPlayer = useCallback(() => {
     const player = new window.Spotify.Player({
@@ -58,12 +81,15 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     player.addListener("ready", ({ device_id }) => {
       deviceIdRef.current = device_id;
       setDeviceId(device_id);
-      transferPlayback(device_id).catch(console.error);
+
+      devicePollAbortRef.current?.abort();
+      const controller = new AbortController();
+      devicePollAbortRef.current = controller;
+      watchDeviceRegistration(device_id, controller.signal).catch(console.error);
     });
 
     player.addListener("player_state_changed", (state) => {
       if (!state) return;
-
       positionMsRef.current = state.position;
       setIsPlaying(!state.paused);
 
@@ -83,10 +109,12 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       }
     });
 
-    player.addListener("authentication_error", () => {
+    player.addListener("authentication_error", ({ message }) => {
+      console.warn("[Player] authentication_error:", message);
+      devicePollAbortRef.current?.abort();
+      devicePollAbortRef.current = null;
       player.disconnect();
       playerRef.current = null;
-      // Reinitialize after a brief delay to avoid rapid retry loops
       setTimeout(createAndConnectPlayer, 1000);
     });
 
@@ -94,12 +122,17 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       setPlayerError("Spotify Premium is required for browser playback.");
     });
 
+    player.addListener("playback_error", ({ message }) => {
+      console.error("[Player] playback_error:", message);
+    });
+
     player.connect().catch(console.error);
+
     playerRef.current = player;
-  }, [getAccessToken, transferPlayback]);
+  }, [getAccessToken, watchDeviceRegistration]);
 
   useEffect(() => {
-    if (window.Spotify) {
+    if ((window as typeof window & { __spotifyReady?: boolean }).__spotifyReady || window.Spotify) {
       createAndConnectPlayer();
     } else {
       const prev = window.onSpotifyWebPlaybackSDKReady;
@@ -110,17 +143,21 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     }
 
     return () => {
+      devicePollAbortRef.current?.abort();
       playerRef.current?.disconnect();
       playerRef.current = null;
     };
-  // createAndConnectPlayer is stable (no state deps, only refs and stable callbacks)
+  // createAndConnectPlayer is stable
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const playTrack = useCallback(
     async (track: Track, source: PlaySource) => {
       const id = deviceIdRef.current;
-      if (!id) return;
+      if (!id) {
+        console.warn("[Player] playTrack called but no device_id yet");
+        return;
+      }
 
       if (prevTrackIdRef.current && currentSourceRef.current && prevTrackIdRef.current !== track.spotify_id) {
         const msPlayed = Date.now() - trackStartMsRef.current;
@@ -138,7 +175,9 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       trackStartMsRef.current = Date.now();
 
       const token = await getAccessToken();
-      for (let attempt = 0; attempt < 3; attempt++) {
+
+      // Retry on 404: SDK device may take a few seconds to propagate to Spotify's REST API.
+      for (let attempt = 0; attempt < 10; attempt++) {
         const res = await fetch(`${SPOTIFY_API}/me/player/play?device_id=${id}`, {
           method: "PUT",
           headers: {
@@ -147,9 +186,19 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
           },
           body: JSON.stringify({ uris: [`spotify:track:${track.spotify_id}`] }),
         });
-        if (res.ok || res.status !== 404) break;
-        await new Promise(r => setTimeout(r, 1500));
+
+        if (res.ok) return;
+
+        if (res.status === 403) {
+          setPlayerError("Playback failed: check Spotify Premium or app permissions.");
+          return;
+        }
+        if (res.status !== 404) return;
+
+        await new Promise(r => setTimeout(r, 1000));
       }
+
+      console.error(`[Player] play failed after 10 attempts for device ${id}`);
     },
     [getAccessToken],
   );

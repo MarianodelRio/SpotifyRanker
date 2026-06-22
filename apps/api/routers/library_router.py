@@ -82,7 +82,7 @@ async def library(
 async def search(
     q: str = Query(..., min_length=1),  # noqa: B008
     type: str = Query("track", pattern="^(track|artist)$"),  # noqa: B008, A002
-    limit: int = Query(20, ge=1, le=50),  # noqa: B008
+    limit: int = Query(10, ge=1, le=10),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, Any]:
     client = await _get_spotify_client(db)

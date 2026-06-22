@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-_SPOTIFY_API_BASE = "https://api.spotify.com/v1"
+_SPOTIFY_API_BASE = "https://api.spotify.com/v1/"
 _MAX_RETRIES = 3
 
 
@@ -54,6 +54,32 @@ class SpotifyClient:
         resp.raise_for_status()
         return {}  # unreachable but satisfies mypy
 
+    async def _get_absolute(self, url: str) -> dict[str, Any]:
+        """GET an absolute URL (Spotify's `next` pagination field) with 429 backoff and 401 refresh."""
+        for attempt in range(_MAX_RETRIES + 1):
+            resp = await self._http.get(url, headers=self._auth_headers())
+
+            if resp.status_code == 401 and self._refresh_fn is not None:
+                new_token = await self._refresh_fn()
+                self._access_token = new_token
+                resp = await self._http.get(url, headers=self._auth_headers())
+                resp.raise_for_status()
+                return resp.json()  # type: ignore[no-any-return]
+
+            if resp.status_code == 429:
+                if attempt == _MAX_RETRIES:
+                    resp.raise_for_status()
+                retry_after = int(resp.headers.get("Retry-After", 1))
+                backoff = min(retry_after * (2**attempt), 30)
+                await asyncio.sleep(backoff)
+                continue
+
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+
+        resp.raise_for_status()
+        return {}  # unreachable but satisfies mypy
+
     async def get_pages(
         self, path: str, **params: Any
     ) -> AsyncGenerator[list[dict[str, Any]], None]:
@@ -66,9 +92,7 @@ class SpotifyClient:
                 data = await self.get(url, **params)
                 first = False
             else:
-                resp = await self._http.get(url, headers=self._auth_headers())
-                resp.raise_for_status()
-                data = resp.json()
+                data = await self._get_absolute(url)
 
             page = _unwrap_page(data)
             items = [item for item in page.get("items", []) if item]
@@ -87,13 +111,8 @@ class SpotifyClient:
                 data = await self.get(url, **params)
                 first = False
             else:
-                # Subsequent pages: url is absolute from Spotify's `next` field
-                resp = await self._http.get(url, headers=self._auth_headers())
-                resp.raise_for_status()
-                data = resp.json()
+                data = await self._get_absolute(url)
 
-            # Spotify wraps paged results in a single key (e.g. "items")
-            # The top-level object is the page; it may be nested under a key.
             page = _unwrap_page(data)
             items.extend(page.get("items", []))
             url = page.get("next")

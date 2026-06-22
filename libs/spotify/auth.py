@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import secrets
@@ -107,10 +108,19 @@ async def refresh_access_token(refresh_token: str, client_id: str) -> dict[str, 
 async def fetch_current_user(access_token: str) -> dict[str, Any]:
     """Fetch authenticated user's Spotify profile."""
     async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            _SPOTIFY_ME_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
+        for attempt in range(4):
+            resp = await client.get(
+                _SPOTIFY_ME_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if resp.status_code == 429:
+                if attempt == 3:
+                    resp.raise_for_status()
+                retry_after = int(resp.headers.get("Retry-After", 1))
+                await asyncio.sleep(min(retry_after * (2**attempt), 30))
+                continue
+            resp.raise_for_status()
+            data: dict[str, Any] = resp.json()
+            return data
         resp.raise_for_status()
-        data: dict[str, Any] = resp.json()
-        return data
+        return {}

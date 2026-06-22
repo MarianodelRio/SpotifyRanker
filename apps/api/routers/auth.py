@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query  # noqa: F401
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
@@ -16,6 +18,8 @@ from libs.spotify.auth import (
     fetch_current_user,
     refresh_access_token,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -47,6 +51,7 @@ async def callback(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
+        logger.error("Token exchange failed: %s", exc)
         raise HTTPException(
             status_code=502, detail="Failed to exchange authorization code"
         ) from exc
@@ -59,6 +64,8 @@ async def callback(
     try:
         user_data = await fetch_current_user(access_token)
     except Exception as exc:
+        body = exc.response.text if isinstance(exc, httpx.HTTPStatusError) else ""
+        logger.error("fetch_current_user failed: %s | body: %s", exc, body)
         raise HTTPException(
             status_code=502, detail="Failed to fetch user profile from Spotify"
         ) from exc

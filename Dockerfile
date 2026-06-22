@@ -16,4 +16,4 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["sh", "-c", "python db/init_db.py && exec uvicorn apps.api.main:app --host 0.0.0.0 --port 8000"]

@@ -7,7 +7,7 @@
     <title>TasteRanker</title>
   </head>
   <body>
-    <script>window.onSpotifyWebPlaybackSDKReady = () => {};</script>
+    <script>window.__spotifyReady = false; window.onSpotifyWebPlaybackSDKReady = () => { window.__spotifyReady = true; };</script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
