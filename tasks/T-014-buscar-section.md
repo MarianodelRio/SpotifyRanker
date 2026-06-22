@@ -3,7 +3,7 @@ id: T-014
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-008]
-status: PR_OPEN
+status: DONE
 branch: feature/T-014-buscar-section
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/19"
 ---
