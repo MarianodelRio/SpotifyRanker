@@ -30,6 +30,9 @@ _TAU = 0.1
 _DEFAULT_EPOCHS = 20
 _DEFAULT_LR = 1e-3
 _BATCH_SIZE = 32
+_DEFAULT_HNM_EPOCHS = 5
+_DEFAULT_HNM_WEIGHT_MULTIPLIER = 2.0
+_DEFAULT_HNM_PERCENTILE = 80.0
 
 
 @dataclass
@@ -50,6 +53,10 @@ async def train(
     session: AsyncSession,
     profile: UserProfile,
     epochs: int = _DEFAULT_EPOCHS,
+    use_hnm: bool = True,
+    hnm_epochs: int = _DEFAULT_HNM_EPOCHS,
+    hnm_weight_multiplier: float = _DEFAULT_HNM_WEIGHT_MULTIPLIER,
+    hnm_percentile: float = _DEFAULT_HNM_PERCENTILE,
 ) -> TrainingResult:
     """Train UserTower + ItemTower with InfoNCE loss and save model files."""
     examples = await build_training_set(session, profile)
@@ -91,6 +98,69 @@ async def train(
     n = len(examples)
     final_loss = float("inf")
 
+    final_loss = _run_epochs(
+        user_tower,
+        item_tower,
+        optimizer,
+        user_tensor,
+        track_tensors,
+        label_tensors,
+        weight_tensors,
+        n,
+        epochs,
+    )
+
+    if use_hnm:
+        aug_track_tensors, aug_label_tensors, aug_weight_tensors, aug_n = _mine_hard_negatives(
+            user_tower,
+            item_tower,
+            user_tensor,
+            track_tensors,
+            label_tensors,
+            weight_tensors,
+            hnm_percentile,
+            hnm_weight_multiplier,
+        )
+        user_tower.train()
+        item_tower.train()
+        final_loss = _run_epochs(
+            user_tower,
+            item_tower,
+            optimizer,
+            user_tensor,
+            aug_track_tensors,
+            aug_label_tensors,
+            aug_weight_tensors,
+            aug_n,
+            hnm_epochs,
+        )
+
+    user_tower.eval()
+    item_tower.eval()
+    torch.save(user_tower.state_dict(), _MODELS_STORE / "user_tower.pt")
+    torch.save(item_tower.state_dict(), _MODELS_STORE / "item_tower.pt")
+
+    return TrainingResult(
+        epochs=epochs,
+        final_loss=final_loss,
+        examples_count=len(examples),
+        trained_at=datetime.utcnow(),
+    )
+
+
+def _run_epochs(
+    user_tower: UserTower,
+    item_tower: ItemTower,
+    optimizer: torch.optim.Optimizer,
+    user_tensor: torch.Tensor,
+    track_tensors: torch.Tensor,
+    label_tensors: torch.Tensor,
+    weight_tensors: torch.Tensor,
+    n: int,
+    epochs: int,
+) -> float:
+    """Run training epochs and return the mean loss of the last epoch."""
+    final_loss = float("inf")
     for _ in range(epochs):
         perm = torch.randperm(n).tolist()
         epoch_losses: list[float] = []
@@ -128,17 +198,48 @@ async def train(
         if epoch_losses:
             final_loss = sum(epoch_losses) / len(epoch_losses)
 
+    return final_loss
+
+
+def _mine_hard_negatives(
+    user_tower: UserTower,
+    item_tower: ItemTower,
+    user_tensor: torch.Tensor,
+    track_tensors: torch.Tensor,
+    label_tensors: torch.Tensor,
+    weight_tensors: torch.Tensor,
+    percentile: float,
+    weight_multiplier: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    """Score all examples, identify hard negatives, and return augmented tensors."""
     user_tower.eval()
     item_tower.eval()
-    torch.save(user_tower.state_dict(), _MODELS_STORE / "user_tower.pt")
-    torch.save(item_tower.state_dict(), _MODELS_STORE / "item_tower.pt")
+    with torch.no_grad():
+        user_emb = user_tower(user_tensor)
+        item_embs = item_tower(track_tensors)
+        scores = (user_emb @ item_embs.T).squeeze(0)
 
-    return TrainingResult(
-        epochs=epochs,
-        final_loss=final_loss,
-        examples_count=len(examples),
-        trained_at=datetime.utcnow(),
+    neg_mask = label_tensors < 0.5
+    neg_scores = scores[neg_mask]
+
+    if neg_scores.numel() == 0:
+        n = track_tensors.shape[0]
+        return track_tensors, label_tensors, weight_tensors, n
+
+    threshold = torch.quantile(neg_scores, percentile / 100.0).item()
+    hard_mask = neg_mask & (scores >= threshold)
+    hard_indices = hard_mask.nonzero(as_tuple=True)[0]
+
+    if hard_indices.numel() == 0:
+        n = track_tensors.shape[0]
+        return track_tensors, label_tensors, weight_tensors, n
+
+    aug_tracks = torch.cat([track_tensors, track_tensors[hard_indices]], dim=0)
+    aug_labels = torch.cat([label_tensors, label_tensors[hard_indices]], dim=0)
+    aug_weights = torch.cat(
+        [weight_tensors, weight_tensors[hard_indices] * weight_multiplier], dim=0
     )
+    return aug_tracks, aug_labels, aug_weights, aug_tracks.shape[0]
 
 
 def _populate_features(
