@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 import httpx
@@ -44,7 +44,7 @@ class SpotifyClient:
                 if attempt == _MAX_RETRIES:
                     resp.raise_for_status()
                 retry_after = int(resp.headers.get("Retry-After", 1))
-                backoff = retry_after * (2**attempt)
+                backoff = min(retry_after * (2**attempt), 30)
                 await asyncio.sleep(backoff)
                 continue
 
@@ -53,6 +53,28 @@ class SpotifyClient:
 
         resp.raise_for_status()
         return {}  # unreachable but satisfies mypy
+
+    async def get_pages(
+        self, path: str, **params: Any
+    ) -> AsyncGenerator[list[dict[str, Any]], None]:
+        """Yield each page's items list one at a time (streaming alternative to get_paginated)."""
+        url: str | None = path
+        first = True
+
+        while url is not None:
+            if first:
+                data = await self.get(url, **params)
+                first = False
+            else:
+                resp = await self._http.get(url, headers=self._auth_headers())
+                resp.raise_for_status()
+                data = resp.json()
+
+            page = _unwrap_page(data)
+            items = [item for item in page.get("items", []) if item]
+            if items:
+                yield items
+            url = page.get("next")
 
     async def get_paginated(self, path: str, **params: Any) -> list[dict[str, Any]]:
         """Fetch all pages of a cursor-based paginated Spotify endpoint."""

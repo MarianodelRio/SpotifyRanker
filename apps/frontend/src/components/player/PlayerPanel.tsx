@@ -3,7 +3,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useFeedback } from "../../hooks/useFeedback";
 
 export default function PlayerPanel() {
-  const { currentTrack, currentSource, isPlaying, togglePlay, skipToNext, getPositionMs } =
+  const { currentTrack, currentSource, isPlaying, error, togglePlay, skipToNext, getPositionMs } =
     usePlayer();
   const { feedbackMap, submitFeedback } = useFeedback();
 
@@ -48,6 +48,11 @@ export default function PlayerPanel() {
 
   return (
     <aside className="w-72 shrink-0 flex flex-col items-center border-l border-zinc-800 p-6 gap-4">
+      {error && (
+        <p className="w-full text-xs text-red-400 text-center bg-red-950/40 rounded px-2 py-1">
+          {error}
+        </p>
+      )}
       {currentTrack?.image_url ? (
         <img
           src={currentTrack.image_url}
