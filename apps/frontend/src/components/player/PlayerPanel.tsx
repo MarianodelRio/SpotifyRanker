@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useFeedback } from "../../hooks/useFeedback";
 
 export default function PlayerPanel() {
-  const { currentTrack, isPlaying, togglePlay, skipToNext, getPositionMs } = usePlayer();
+  const { currentTrack, currentSource, isPlaying, togglePlay, skipToNext, getPositionMs } =
+    usePlayer();
+  const { feedbackMap, submitFeedback } = useFeedback();
 
   const [displayPositionMs, setDisplayPositionMs] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -31,6 +34,18 @@ export default function PlayerPanel() {
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const feedback = currentTrack ? (feedbackMap[currentTrack.spotify_id] ?? null) : null;
+
+  const handleLike = () => {
+    if (!currentTrack || !currentSource) return;
+    submitFeedback(currentTrack, "like", currentSource);
+  };
+
+  const handleDislike = () => {
+    if (!currentTrack || !currentSource) return;
+    submitFeedback(currentTrack, "dislike", currentSource);
+  };
+
   return (
     <aside className="w-72 shrink-0 flex flex-col items-center border-l border-zinc-800 p-6 gap-4">
       {currentTrack?.image_url ? (
@@ -44,9 +59,7 @@ export default function PlayerPanel() {
       )}
 
       <div className="w-full text-center">
-        <p className="text-sm text-white font-medium truncate">
-          {currentTrack?.title ?? "—"}
-        </p>
+        <p className="text-sm text-white font-medium truncate">{currentTrack?.title ?? "—"}</p>
         <p className="text-xs text-zinc-500 truncate">
           {currentTrack?.artist_name ?? "No track playing"}
         </p>
@@ -84,15 +97,21 @@ export default function PlayerPanel() {
         </button>
         <button
           aria-label="Like"
+          onClick={handleLike}
           disabled={!currentTrack}
-          className="text-zinc-400 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white rounded disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white rounded disabled:opacity-40 disabled:cursor-not-allowed ${
+            feedback === "like" ? "text-green-400" : "text-zinc-400 hover:text-white"
+          }`}
         >
-          ♥
+          {feedback === "like" ? "♥" : "♡"}
         </button>
         <button
           aria-label="Dislike"
+          onClick={handleDislike}
           disabled={!currentTrack}
-          className="text-zinc-400 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white rounded disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white rounded disabled:opacity-40 disabled:cursor-not-allowed ${
+            feedback === "dislike" ? "text-red-400" : "text-zinc-400 hover:text-white"
+          }`}
         >
           ✕
         </button>

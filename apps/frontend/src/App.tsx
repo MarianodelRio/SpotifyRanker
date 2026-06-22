@@ -7,6 +7,7 @@ import Descubrir from "./sections/Descubrir";
 import { useAuth } from "./hooks/useAuth";
 import { AuthProvider } from "./context/AuthContext";
 import { PlayerProvider } from "./context/PlayerContext";
+import { FeedbackProvider } from "./context/FeedbackContext";
 
 function AppContent() {
   const auth = useAuth();
@@ -26,6 +27,7 @@ function AppContent() {
   return (
     <AuthProvider value={auth}>
       <PlayerProvider>
+        <FeedbackProvider>
         <AppLayout>
           <Routes>
             <Route path="/" element={<MiMusica />} />
@@ -34,6 +36,7 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>
+        </FeedbackProvider>
       </PlayerProvider>
     </AuthProvider>
   );
