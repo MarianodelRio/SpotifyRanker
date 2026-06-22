@@ -3,9 +3,9 @@ id: T-031
 phase: 4
 agent: ML/Ranking
 depends_on: [T-020]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-031-hard-negative-mining
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/26"
 ---
 
 ### T-031 — Hard Negative Mining
@@ -33,3 +33,4 @@ HNM is optional and controlled by a flag in the trainer config (`use_hnm: bool`,
 - `_mine_hard_negatives()` runs in `torch.no_grad()` / eval mode; calls `user_tower.train()` / `item_tower.train()` before HNM epochs resume.
 - HNM augments tensors by appending hard-negative rows with weight × `hnm_weight_multiplier` (default 2.0); does not mutate the original examples list.
 - All 4 new tests pass: run-without-errors, score-above-threshold, loss-lower-with-HNM, use_hnm=False regression guard. Full suite: 254 passed.
+- PR Reviewer note: `test_hnm_loss_lower_than_base` uses a +0.5 tolerance (HNM can report up to 0.5 higher loss and still pass). This is intentional — both runs use different random model inits, making exact comparison noisy. The test is a sanity guard, not a strict lower-bound proof. Human reviewer should assess if this is acceptable for the acceptance criterion "loss is lower with HNM".
