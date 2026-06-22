@@ -3,7 +3,7 @@ id: T-016
 phase: 1
 agent: Frontend
 depends_on: [T-015, T-009]
-status: PR_OPEN
+status: DONE
 branch: feature/T-016-trackcard-feedback
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/22"
 ---
