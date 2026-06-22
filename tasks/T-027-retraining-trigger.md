@@ -3,7 +3,7 @@ id: T-027
 phase: 3
 agent: Data
 depends_on: [T-009, T-020]
-status: PR_OPEN
+status: DONE
 branch: feature/T-027-retraining-trigger
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/27"
 ---
