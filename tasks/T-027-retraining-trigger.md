@@ -31,3 +31,4 @@ Add automatic retraining logic to the feedback pipeline. Every 20 new feedback e
 - `trigger.py` uses lazy imports inside `_run_retrain()` for `AsyncSessionLocal`, `trainer.train`, and `build_profile` to avoid import-time circular dependencies.
 - All checks pass: 258 tests, mypy clean, ruff clean.
 - PR Reviewer: rebased cleanly onto master (one mechanical conflict in tasks file — status ordering, resolved). 284 tests pass post-rebase. Debounce is best-effort (JSON file, not a DB transaction) — acceptable for single-user use; flagged in PR for human awareness.
+- ⚠ Implementation commit (c389e08) landed directly on master during orchestration (worktree path confusion). PR #27 was auto-closed when the feature branch was reset to master HEAD. Code is correct and live on master. Run `/done T-027` to unblock T-028.
