@@ -3,7 +3,7 @@ id: T-029
 phase: 3
 agent: Backend/API
 depends_on: [T-007, T-018]
-status: PR_OPEN
+status: DONE
 branch: feature/T-029-onboarding-backend
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/18"
 ---
