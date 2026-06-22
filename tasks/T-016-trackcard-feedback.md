@@ -3,8 +3,8 @@ id: T-016
 phase: 1
 agent: Frontend
 depends_on: [T-015, T-009]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-016-trackcard-feedback
 pr: ""
 ---
 
@@ -28,4 +28,10 @@ Build the final `TrackCard` component with like/dislike buttons, and add like/di
 - Player panel buttons stay in sync with the TrackCard buttons for the same track.
 
 **Notes**
-_Orchestrator fills after completion._
+- `FeedbackContext` / `FeedbackProvider` added at `src/context/FeedbackContext.tsx` — wraps `PlayerProvider` children in `App.tsx`. Keyed by `spotify_id`. State is `Record<string, 'like' | 'dislike' | null>`.
+- `useFeedback` hook at `src/hooks/useFeedback.ts` — throws if used outside `FeedbackProvider`.
+- Optimistic update: state is applied immediately; on API error the previous value is restored (revert, not clear).
+- `TrackCard` buttons use `stopPropagation` to prevent click from triggering play; the outer `div` still handles row-click → play.
+- `PlayerPanel` reads `currentSource` from `PlayerContext` (already in `PlayerContextValue`) to pass the correct source when submitting feedback.
+- `tsc --noEmit` and `eslint` both pass clean.
+- Like shows filled ♥ (green), dislike shows ✕ (red); neutral shows ♡ / ✕ in muted zinc.
