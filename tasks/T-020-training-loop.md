@@ -3,7 +3,7 @@ id: T-020
 phase: 2
 agent: ML/Ranking
 depends_on: [T-017, T-018, T-019]
-status: PR_OPEN
+status: DONE
 branch: feature/T-020-training-loop
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/21"
 ---
