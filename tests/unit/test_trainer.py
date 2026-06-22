@@ -261,9 +261,7 @@ class TestHardNegativeMining:
                 return_value=np.zeros(feat_dim, dtype=np.float32),
             ),
         ):
-            result = asyncio.run(
-                train(mock_session, profile, epochs=3, use_hnm=True, hnm_epochs=2)
-            )
+            result = asyncio.run(train(mock_session, profile, epochs=3, use_hnm=True, hnm_epochs=2))
 
         assert isinstance(result, TrainingResult)
         assert (tmp_path / "user_tower.pt").exists()
@@ -282,14 +280,18 @@ class TestHardNegativeMining:
 
         percentile = 80.0
         aug_tracks, aug_labels, aug_weights, aug_n = _mine_hard_negatives(
-            user_tower, item_tower, user_tensor,
-            track_tensors, label_tensors, weight_tensors,
-            percentile=percentile, weight_multiplier=2.0,
+            user_tower,
+            item_tower,
+            user_tensor,
+            track_tensors,
+            label_tensors,
+            weight_tensors,
+            percentile=percentile,
+            weight_multiplier=2.0,
         )
 
         n_original = track_tensors.shape[0]
         if aug_n > n_original:
-            added_count = aug_n - n_original
             user_tower.eval()
             item_tower.eval()
             with torch.no_grad():
@@ -335,8 +337,11 @@ class TestHardNegativeMining:
             ):
                 return asyncio.run(
                     train(
-                        mock_session, profile,
-                        epochs=5, use_hnm=use_hnm, hnm_epochs=3,
+                        mock_session,
+                        profile,
+                        epochs=5,
+                        use_hnm=use_hnm,
+                        hnm_epochs=3,
                     )
                 )
 
@@ -366,9 +371,7 @@ class TestHardNegativeMining:
                 return_value=np.zeros(feat_dim, dtype=np.float32),
             ),
         ):
-            result = asyncio.run(
-                train(mock_session, profile, epochs=3, use_hnm=False)
-            )
+            result = asyncio.run(train(mock_session, profile, epochs=3, use_hnm=False))
 
         assert isinstance(result, TrainingResult)
         assert result.epochs == 3
