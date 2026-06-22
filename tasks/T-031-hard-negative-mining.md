@@ -3,8 +3,8 @@ id: T-031
 phase: 4
 agent: ML/Ranking
 depends_on: [T-020]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-031-hard-negative-mining
 pr: ""
 ---
 
@@ -29,4 +29,7 @@ HNM is optional and controlled by a flag in the trainer config (`use_hnm: bool`,
 - `use_hnm=False` produces the same result as the T-020 training loop (no regression).
 
 **Notes**
-_Orchestrator fills after completion._
+- Refactored the inner training loop into `_run_epochs()` helper so it can be called once for base training and once for HNM retraining without duplication.
+- `_mine_hard_negatives()` runs in `torch.no_grad()` / eval mode; calls `user_tower.train()` / `item_tower.train()` before HNM epochs resume.
+- HNM augments tensors by appending hard-negative rows with weight × `hnm_weight_multiplier` (default 2.0); does not mutate the original examples list.
+- All 4 new tests pass: run-without-errors, score-above-threshold, loss-lower-with-HNM, use_hnm=False regression guard. Full suite: 254 passed.
