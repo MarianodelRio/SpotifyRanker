@@ -3,8 +3,8 @@ id: T-020
 phase: 2
 agent: ML/Ranking
 depends_on: [T-017, T-018, T-019]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-020-training-loop
 pr: ""
 ---
 
@@ -30,4 +30,8 @@ Implement the full training pipeline: build dataset, train UserTower + ItemTower
 - No GPU required. Training uses `device='cpu'` explicitly.
 
 **Notes**
-_Orchestrator fills after completion._
+- **Signature deviation:** `train(session, profile) → TrainingResult` instead of the task-spec's `train(session)`. Importing `libs.profile` from `libs.ml` would violate the DAG (they are siblings under `common`). The API layer calls `build_profile(session)` then passes the result to `train()`. Human approved this before implementation.
+- **`TowerPair` dataclass** also defined in `trainer.py` for use by T-021 (inference engine).
+- **InfoNCE implementation:** single-user setting means all user feature vectors are identical within a run. In-batch negatives are all items in the batch; loss computed only over positives (label ≥ 0.5), weighted by `example.weight`. Gradient clipping (max_norm=1.0) added as safety net per agent guidance.
+- **Track metadata query:** trainer does a separate `selectinload` DB query to load track → artist → genres for feature building, since `build_training_set` only returns `track_id`.
+- **212 unit tests pass.** 6 new tests added in `tests/unit/test_trainer.py`.
