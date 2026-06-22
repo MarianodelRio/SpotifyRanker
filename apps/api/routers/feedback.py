@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +6,7 @@ from apps.api.dependencies import get_db
 from libs.common.enums import FeedbackType, PlaySource
 from libs.common.models import FeedbackEntry
 from libs.feedback.processor import record_feedback, record_play_event
+from libs.feedback.trigger import check_and_trigger
 
 router = APIRouter()
 
@@ -27,6 +28,7 @@ class PlayEventRequest(BaseModel):
 @router.post("/feedback", status_code=204)
 async def post_feedback(
     body: FeedbackRequest,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> None:
     entry = FeedbackEntry(
@@ -36,6 +38,7 @@ async def post_feedback(
         playlist_id=body.playlist_id,
     )
     await record_feedback(entry, session)
+    await check_and_trigger(session, background_tasks)
 
 
 @router.post("/player/event", status_code=204)
