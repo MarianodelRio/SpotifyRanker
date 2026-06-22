@@ -1,4 +1,5 @@
 import { usePlayer } from "../../hooks/usePlayer";
+import { useFeedback } from "../../hooks/useFeedback";
 import type { Track, PlaySource } from "../../types/api";
 
 interface TrackCardProps {
@@ -15,11 +16,23 @@ function formatDuration(ms: number): string {
 
 export default function TrackCard({ track, source }: TrackCardProps) {
   const { playTrack, currentTrack, isPlaying } = usePlayer();
+  const { feedbackMap, submitFeedback } = useFeedback();
 
   const isActive = currentTrack?.spotify_id === track.spotify_id;
+  const feedback = feedbackMap[track.spotify_id] ?? null;
 
   const handlePlay = () => {
     playTrack(track, source).catch(console.error);
+  };
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    submitFeedback(track, "like", source);
+  };
+
+  const handleDislike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    submitFeedback(track, "dislike", source);
   };
 
   return (
@@ -35,9 +48,7 @@ export default function TrackCard({ track, source }: TrackCardProps) {
       }}
       aria-label={`Play ${track.title} by ${track.artist_name}`}
       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white outline-none ${
-        isActive
-          ? "bg-zinc-700"
-          : "hover:bg-zinc-800"
+        isActive ? "bg-zinc-700" : "hover:bg-zinc-800"
       }`}
     >
       {track.image_url ? (
@@ -51,17 +62,35 @@ export default function TrackCard({ track, source }: TrackCardProps) {
       )}
 
       <div className="flex-1 min-w-0">
-        <p
-          className={`text-sm font-medium truncate ${isActive ? "text-green-400" : "text-white"}`}
-        >
-          {isActive && isPlaying ? "▶ " : ""}{track.title}
+        <p className={`text-sm font-medium truncate ${isActive ? "text-green-400" : "text-white"}`}>
+          {isActive && isPlaying ? "▶ " : ""}
+          {track.title}
         </p>
         <p className="text-xs text-zinc-400 truncate">{track.artist_name}</p>
       </div>
 
-      <span className="text-xs text-zinc-500 shrink-0">
-        {formatDuration(track.duration_ms)}
-      </span>
+      <span className="text-xs text-zinc-500 shrink-0">{formatDuration(track.duration_ms)}</span>
+
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <button
+          aria-label="Like"
+          onClick={handleLike}
+          className={`p-1 rounded transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white outline-none ${
+            feedback === "like" ? "text-green-400" : "text-zinc-500 hover:text-white"
+          }`}
+        >
+          {feedback === "like" ? "♥" : "♡"}
+        </button>
+        <button
+          aria-label="Dislike"
+          onClick={handleDislike}
+          className={`p-1 rounded transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white outline-none ${
+            feedback === "dislike" ? "text-red-400" : "text-zinc-500 hover:text-white"
+          }`}
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
