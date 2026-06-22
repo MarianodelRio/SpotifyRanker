@@ -31,14 +31,19 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
 
   const transferPlayback = useCallback(async (id: string) => {
     const token = await getAccessToken();
-    await fetch(`${SPOTIFY_API}/me/player`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ device_ids: [id], play: false }),
-    });
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const res = await fetch(`${SPOTIFY_API}/me/player`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ device_ids: [id], play: false }),
+      });
+      if (res.status === 204) return;
+      if (res.status !== 404) return;
+      await new Promise(r => setTimeout(r, 1000));
+    }
   }, [getAccessToken]);
 
   const createAndConnectPlayer = useCallback(() => {
@@ -53,7 +58,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     player.addListener("ready", ({ device_id }) => {
       deviceIdRef.current = device_id;
       setDeviceId(device_id);
-      setTimeout(() => transferPlayback(device_id).catch(console.error), 1000);
+      transferPlayback(device_id).catch(console.error);
     });
 
     player.addListener("player_state_changed", (state) => {
@@ -133,14 +138,18 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       trackStartMsRef.current = Date.now();
 
       const token = await getAccessToken();
-      await fetch(`${SPOTIFY_API}/me/player/play?device_id=${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ uris: [`spotify:track:${track.spotify_id}`] }),
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await fetch(`${SPOTIFY_API}/me/player/play?device_id=${id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ uris: [`spotify:track:${track.spotify_id}`] }),
+        });
+        if (res.ok || res.status !== 404) break;
+        await new Promise(r => setTimeout(r, 1500));
+      }
     },
     [getAccessToken],
   );
