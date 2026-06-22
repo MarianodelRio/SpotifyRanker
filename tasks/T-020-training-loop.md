@@ -5,7 +5,7 @@ agent: ML/Ranking
 depends_on: [T-017, T-018, T-019]
 status: DONE
 branch: feature/T-020-training-loop
-pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/21"
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/23"
 ---
 
 ### T-020 — Training loop (InfoNCE)
