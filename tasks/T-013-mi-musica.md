@@ -3,8 +3,8 @@ id: T-013
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-008]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-013-mi-musica
 pr: ""
 ---
 
@@ -27,4 +27,8 @@ Build the Mi música section showing the user's saved and liked tracks.
 - Empty state renders correctly before first import.
 
 **Notes**
-_Orchestrator fills after completion._
+Two new files only — no changes outside `apps/frontend/src/sections/MiMusica/`:
+- `useImportPoller.ts`: polls `GET /import/status` every 3s while status is `running`; fires a `justCompleted` pulse when transitioning out of `running` so the track list re-fetches automatically.
+- `index.tsx`: import banner (shows while running or failed, hides otherwise), "Sync library" button in header when idle, loading skeleton (8 animated rows), empty state with "Import from Spotify" CTA, paginated track list with "Load more" button, and total-count footer when all pages loaded.
+- All API calls go through existing `src/api/library.ts` functions. `TrackCard` used as-is.
+- `tsc --noEmit` and ESLint pass clean.
