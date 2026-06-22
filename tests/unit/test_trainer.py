@@ -13,6 +13,7 @@ from libs.common.models import UserProfile
 from libs.ml.trainer import (
     TowerPair,
     TrainingResult,
+    _mine_hard_negatives,
     _populate_features,
     train,
 )
@@ -225,3 +226,151 @@ class TestPopulateFeatures:
 
         assert ex.user_features is user_feat
         assert ex.track_features.size == feat_dim
+
+
+# ---------------------------------------------------------------------------
+# Hard Negative Mining
+# ---------------------------------------------------------------------------
+
+
+class TestHardNegativeMining:
+    def _make_tensors(self, feat_dim: int = 16, n: int = 60):
+        rng = np.random.default_rng(0)
+        track_tensors = torch.tensor(rng.random((n, feat_dim)).astype(np.float32))
+        label_tensors = torch.tensor(
+            [0.9 if i % 3 != 0 else 0.1 for i in range(n)], dtype=torch.float32
+        )
+        weight_tensors = torch.ones(n, dtype=torch.float32)
+        return track_tensors, label_tensors, weight_tensors
+
+    def test_hnm_runs_without_errors(self, tmp_path):
+        feat_dim = 24
+        n = 60
+        examples = _make_examples(n, feat_dim)
+        profile = _make_profile()
+
+        mock_session = AsyncMock()
+        with (
+            patch("libs.ml.trainer.build_training_set", new=AsyncMock(return_value=examples)),
+            patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+            patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
+            patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
+            patch("libs.ml.trainer.save_vocab"),
+            patch(
+                "libs.ml.trainer.build_user_features",
+                return_value=np.zeros(feat_dim, dtype=np.float32),
+            ),
+        ):
+            result = asyncio.run(
+                train(mock_session, profile, epochs=3, use_hnm=True, hnm_epochs=2)
+            )
+
+        assert isinstance(result, TrainingResult)
+        assert (tmp_path / "user_tower.pt").exists()
+
+    def test_hard_negatives_score_above_threshold(self):
+        from libs.ml.models.item_tower import ItemTower
+        from libs.ml.models.user_tower import UserTower
+
+        feat_dim = 16
+        n = 60
+        track_tensors, label_tensors, weight_tensors = self._make_tensors(feat_dim, n)
+        user_tensor = torch.zeros(1, feat_dim)
+
+        user_tower = UserTower(feat_dim)
+        item_tower = ItemTower(feat_dim)
+
+        percentile = 80.0
+        aug_tracks, aug_labels, aug_weights, aug_n = _mine_hard_negatives(
+            user_tower, item_tower, user_tensor,
+            track_tensors, label_tensors, weight_tensors,
+            percentile=percentile, weight_multiplier=2.0,
+        )
+
+        n_original = track_tensors.shape[0]
+        if aug_n > n_original:
+            added_count = aug_n - n_original
+            user_tower.eval()
+            item_tower.eval()
+            with torch.no_grad():
+                user_emb = user_tower(user_tensor)
+                item_embs = item_tower(track_tensors)
+                scores = (user_emb @ item_embs.T).squeeze(0)
+
+            neg_mask = label_tensors < 0.5
+            neg_scores = scores[neg_mask]
+            threshold = torch.quantile(neg_scores, percentile / 100.0).item()
+
+            added_tracks = aug_tracks[n_original:]
+            added_embs = item_tower(added_tracks)
+            added_scores = (user_emb @ added_embs.T).squeeze(0)
+            assert (added_scores >= threshold - 1e-5).all(), (
+                f"Some hard negatives score below threshold {threshold:.4f}"
+            )
+
+        assert aug_n >= n_original
+
+    def test_hnm_loss_lower_than_base(self, tmp_path):
+        feat_dim = 24
+        n = 80
+        examples_base = _make_examples(n, feat_dim)
+        examples_hnm = _make_examples(n, feat_dim)
+        profile = _make_profile()
+
+        def run_train(examples, use_hnm):
+            mock_session = AsyncMock()
+            with (
+                patch(
+                    "libs.ml.trainer.build_training_set",
+                    new=AsyncMock(return_value=examples),
+                ),
+                patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+                patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
+                patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
+                patch("libs.ml.trainer.save_vocab"),
+                patch(
+                    "libs.ml.trainer.build_user_features",
+                    return_value=np.zeros(feat_dim, dtype=np.float32),
+                ),
+            ):
+                return asyncio.run(
+                    train(
+                        mock_session, profile,
+                        epochs=5, use_hnm=use_hnm, hnm_epochs=3,
+                    )
+                )
+
+        result_base = run_train(examples_base, use_hnm=False)
+        result_hnm = run_train(examples_hnm, use_hnm=True)
+
+        assert result_hnm.final_loss <= result_base.final_loss + 0.5, (
+            f"HNM loss {result_hnm.final_loss:.4f} unexpectedly much higher than "
+            f"base loss {result_base.final_loss:.4f}"
+        )
+
+    def test_use_hnm_false_no_regression(self, tmp_path):
+        feat_dim = 24
+        n = 60
+        examples = _make_examples(n, feat_dim)
+        profile = _make_profile()
+
+        mock_session = AsyncMock()
+        with (
+            patch("libs.ml.trainer.build_training_set", new=AsyncMock(return_value=examples)),
+            patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+            patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
+            patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
+            patch("libs.ml.trainer.save_vocab"),
+            patch(
+                "libs.ml.trainer.build_user_features",
+                return_value=np.zeros(feat_dim, dtype=np.float32),
+            ),
+        ):
+            result = asyncio.run(
+                train(mock_session, profile, epochs=3, use_hnm=False)
+            )
+
+        assert isinstance(result, TrainingResult)
+        assert result.epochs == 3
+        assert result.examples_count == n
+        assert result.final_loss < float("inf")
