@@ -3,8 +3,8 @@ id: T-021
 phase: 2
 agent: ML/Ranking
 depends_on: [T-020]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-021-inference-engine
 pr: ""
 ---
 
@@ -28,4 +28,8 @@ All inference runs in `torch.no_grad()`. No GPU assumed.
 - Inference for 500 candidates runs in under 2 seconds on CPU.
 
 **Notes**
-_Orchestrator fills after completion._
+- **`vocab` as explicit parameter:** `compute_user_embedding` and `compute_item_embedding` both accept `vocab: list[str]` as an explicit parameter (not loaded internally per call). Callers load it once via `get_vocab()` alongside `load_model()`. This avoids repeated disk reads per candidate.
+- **`get_vocab()` helper added:** public function that loads `vocab.json` from `models_store/`, raising `ModelNotTrainedError` (same exception class) if absent. T-022 ranker should call both `load_model()` and `get_vocab()` at startup.
+- **`input_dim` derived dynamically:** `load_model()` builds a dummy `UserProfile()` and calls `build_user_features()` to get the exact feature vector length, rather than hardcoding the formula. This stays in sync if features.py ever changes.
+- **`TowerPair` imported from `trainer.py`:** as the T-020 notes intended. No duplicate definition.
+- **22 unit tests pass.** Covers: missing files error, actionable error message, eval mode, 32-dim output, L2 normalization, determinism, empty profile/unknown genres edge cases, scores in [-1, 1], 500-candidate perf < 2s.
