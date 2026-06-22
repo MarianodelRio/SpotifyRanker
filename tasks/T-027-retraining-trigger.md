@@ -3,9 +3,9 @@ id: T-027
 phase: 3
 agent: Data
 depends_on: [T-009, T-020]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-027-retraining-trigger
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/27"
 ---
 
 ### T-027 — Retraining trigger
@@ -30,3 +30,4 @@ Add automatic retraining logic to the feedback pipeline. Every 20 new feedback e
 - `apps/api/routers/feedback.py` touched outside Data agent's folder: added `BackgroundTasks` dependency and `await check_and_trigger(...)` call. Minimal wiring required by the task — noted per CLAUDE.md policy.
 - `trigger.py` uses lazy imports inside `_run_retrain()` for `AsyncSessionLocal`, `trainer.train`, and `build_profile` to avoid import-time circular dependencies.
 - All checks pass: 258 tests, mypy clean, ruff clean.
+- PR Reviewer: rebased cleanly onto master (one mechanical conflict in tasks file — status ordering, resolved). 284 tests pass post-rebase. Debounce is best-effort (JSON file, not a DB transaction) — acceptable for single-user use; flagged in PR for human awareness.
