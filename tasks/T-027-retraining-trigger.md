@@ -3,8 +3,8 @@ id: T-027
 phase: 3
 agent: Data
 depends_on: [T-009, T-020]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-027-retraining-trigger
 pr: ""
 ---
 
@@ -25,4 +25,8 @@ Add automatic retraining logic to the feedback pipeline. Every 20 new feedback e
 - Retraining runs in the background and does not block the API response.
 
 **Notes**
-_Orchestrator fills after completion._
+- State stored in `models_store/training_state.json` (JSON, `last_trained_at` + `training_in_progress`) — no DB migration needed.
+- Feedback count queried directly from DB (`user_track_data` rows with non-null `feedback_at > last_trained_at`), not a running counter.
+- `apps/api/routers/feedback.py` touched outside Data agent's folder: added `BackgroundTasks` dependency and `await check_and_trigger(...)` call. Minimal wiring required by the task — noted per CLAUDE.md policy.
+- `trigger.py` uses lazy imports inside `_run_retrain()` for `AsyncSessionLocal`, `trainer.train`, and `build_profile` to avoid import-time circular dependencies.
+- All checks pass: 258 tests, mypy clean, ruff clean.
