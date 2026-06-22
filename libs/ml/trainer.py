@@ -84,9 +84,7 @@ async def train(
     )
 
     user_tensor = torch.tensor(examples[0].user_features, dtype=torch.float32).unsqueeze(0)
-    track_tensors = torch.tensor(
-        [ex.track_features for ex in examples], dtype=torch.float32
-    )
+    track_tensors = torch.tensor([ex.track_features for ex in examples], dtype=torch.float32)
     label_tensors = torch.tensor([ex.label for ex in examples], dtype=torch.float32)
     weight_tensors = torch.tensor([ex.weight for ex in examples], dtype=torch.float32)
 

@@ -1,4 +1,5 @@
 """Unit tests for libs/ml/trainer.py — no DB, no Spotify required."""
+
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +21,7 @@ from libs.ml.training_set import TrainingExample
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_profile() -> UserProfile:
     return UserProfile(
@@ -50,9 +52,11 @@ def _make_examples(n: int, feat_dim: int) -> list[TrainingExample]:
 # TrainingResult dataclass
 # ---------------------------------------------------------------------------
 
+
 class TestTrainingResult:
     def test_has_required_fields(self):
         from datetime import datetime
+
         result = TrainingResult(
             epochs=5,
             final_loss=0.42,
@@ -69,10 +73,12 @@ class TestTrainingResult:
 # TowerPair dataclass
 # ---------------------------------------------------------------------------
 
+
 class TestTowerPair:
     def test_holds_towers(self):
         from libs.ml.models.item_tower import ItemTower
         from libs.ml.models.user_tower import UserTower
+
         u = UserTower(input_dim=8)
         i = ItemTower(input_dim=8)
         pair = TowerPair(user_tower=u, item_tower=i)
@@ -83,6 +89,7 @@ class TestTowerPair:
 # ---------------------------------------------------------------------------
 # Loss decreases over epochs (synthetic data — no DB)
 # ---------------------------------------------------------------------------
+
 
 class TestLossDecreases:
     def test_loss_decreases_over_5_epochs(self, tmp_path):
@@ -116,7 +123,7 @@ class TestLossDecreases:
             perm = torch.randperm(n_examples).tolist()
             epoch_losses = []
             for start in range(0, n_examples, 32):
-                batch_idx = perm[start: start + 32]
+                batch_idx = perm[start : start + 32]
                 if len(batch_idx) < 2:
                     continue
                 track_batch = track_tensors[batch_idx]
@@ -153,6 +160,7 @@ class TestLossDecreases:
 # Model files saved to models_store
 # ---------------------------------------------------------------------------
 
+
 class TestModelFilesSaved:
     def test_files_written_after_train(self, tmp_path):
         """Mocks DB + build_training_set; verifies model files are created."""
@@ -169,7 +177,10 @@ class TestModelFilesSaved:
             patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
             patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
             patch("libs.ml.trainer.save_vocab"),
-            patch("libs.ml.trainer.build_user_features", return_value=np.zeros(feat_dim, dtype=np.float32)),
+            patch(
+                "libs.ml.trainer.build_user_features",
+                return_value=np.zeros(feat_dim, dtype=np.float32),
+            ),
         ):
             result = asyncio.run(train(mock_session, profile, epochs=3))
 
@@ -183,6 +194,7 @@ class TestModelFilesSaved:
 # ---------------------------------------------------------------------------
 # _populate_features helper
 # ---------------------------------------------------------------------------
+
 
 class TestPopulateFeatures:
     def test_skips_missing_track(self):
@@ -206,9 +218,7 @@ class TestPopulateFeatures:
             duration_ms=200000,
             popularity=70,
         )
-        track_meta = {
-            "t1": {"track": common_track, "genres": [], "artist_popularity": 70}
-        }
+        track_meta = {"t1": {"track": common_track, "genres": [], "artist_popularity": 70}}
         user_feat = np.random.rand(feat_dim).astype(np.float32)
 
         _populate_features([ex], track_meta, vocab, user_feat)
