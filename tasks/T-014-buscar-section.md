@@ -3,8 +3,8 @@ id: T-014
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-008]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-014-buscar-section
 pr: ""
 ---
 
@@ -27,4 +27,8 @@ Build the Buscar section for searching the Spotify catalog.
 - Empty query shows empty state (not a search).
 
 **Notes**
-_Orchestrator fills after completion._
+- Replaced the stub with a full implementation: controlled input, 300ms debounce via `useEffect`, `searchTracks()` from the existing API client.
+- Results rendered as `TrackCard` list with `source="search"`.
+- Empty state (no query), loading state, error state, and no-results state all handled.
+- Results clear naturally on component unmount (component state); cleanup also cancels any pending debounce timer.
+- No new types, API functions, or dependencies introduced — all contracts were already in place.
