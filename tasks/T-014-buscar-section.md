@@ -3,9 +3,9 @@ id: T-014
 phase: 1
 agent: Frontend
 depends_on: [T-012, T-008]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-014-buscar-section
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/19"
 ---
 
 ### T-014 — Buscar section
@@ -32,3 +32,4 @@ Build the Buscar section for searching the Spotify catalog.
 - Empty state (no query), loading state, error state, and no-results state all handled.
 - Results clear naturally on component unmount (component state); cleanup also cancels any pending debounce timer.
 - No new types, API functions, or dependencies introduced — all contracts were already in place.
+- PR Reviewer: rebase was clean (1 mechanical conflict on task metadata, resolved automatically). Single implementation commit on the branch. tsc and eslint both pass clean.
