@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from libs.common.models import Artist, Track
@@ -20,6 +21,11 @@ class SpotifyFetcher:
         items = await self._client.get_paginated("/me/tracks", limit=50)
         return [_parse_saved_track(item) for item in items if item]
 
+    async def fetch_saved_tracks_paged(self, limit: int = 50) -> AsyncGenerator[list[Track], None]:
+        """Yield one batch of saved tracks per Spotify page (streaming)."""
+        async for raw_items in self._client.get_pages("/me/tracks", limit=limit):
+            yield [_parse_saved_track(item) for item in raw_items]
+
     # ── Top tracks ────────────────────────────────────────────────────────────
 
     async def fetch_top_tracks(self, time_range: str = "medium_term") -> list[Track]:
@@ -27,6 +33,17 @@ class SpotifyFetcher:
             raise ValueError(f"time_range must be one of {_TIME_RANGES}")
         items = await self._client.get_paginated("/me/top/tracks", time_range=time_range, limit=50)
         return [_parse_track(item) for item in items if item]
+
+    async def fetch_top_tracks_paged(
+        self, time_range: str, limit: int = 50
+    ) -> AsyncGenerator[list[Track], None]:
+        """Yield one batch of top tracks per Spotify page (streaming)."""
+        if time_range not in _TIME_RANGES:
+            raise ValueError(f"time_range must be one of {_TIME_RANGES}")
+        async for raw_items in self._client.get_pages(
+            "/me/top/tracks", time_range=time_range, limit=limit
+        ):
+            yield [_parse_track(item) for item in raw_items]
 
     # ── Top artists ───────────────────────────────────────────────────────────
 

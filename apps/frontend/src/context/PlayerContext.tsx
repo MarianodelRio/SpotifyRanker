@@ -14,6 +14,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [playerError, setPlayerError] = useState<string | null>(null);
 
   const playerRef = useRef<Spotify.Player | null>(null);
   const deviceIdRef = useRef<string | null>(null);
@@ -52,7 +53,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     player.addListener("ready", ({ device_id }) => {
       deviceIdRef.current = device_id;
       setDeviceId(device_id);
-      transferPlayback(device_id).catch(console.error);
+      setTimeout(() => transferPlayback(device_id).catch(console.error), 1000);
     });
 
     player.addListener("player_state_changed", (state) => {
@@ -85,7 +86,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     });
 
     player.addListener("account_error", () => {
-      console.error("Spotify Premium is required for browser playback.");
+      setPlayerError("Spotify Premium is required for browser playback.");
     });
 
     player.connect().catch(console.error);
@@ -161,6 +162,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
         isPlaying,
         deviceId,
         currentSource: currentSourceRef.current,
+        error: playerError,
         playTrack,
         togglePlay,
         skipToNext,

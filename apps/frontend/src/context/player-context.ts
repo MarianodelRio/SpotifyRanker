@@ -6,6 +6,7 @@ export interface PlayerContextValue {
   isPlaying: boolean;
   deviceId: string | null;
   currentSource: PlaySource | null;
+  error: string | null;
   playTrack: (track: Track, source: PlaySource) => Promise<void>;
   togglePlay: () => void;
   skipToNext: () => void;

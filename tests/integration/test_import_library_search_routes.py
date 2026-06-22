@@ -265,14 +265,15 @@ async def test_library_pagination(client, test_engine):
             session.add(UserTrackData(track_id=f"t{i}", is_saved=True))
         await session.commit()
 
-    resp = await client.get("/library?offset=0&limit=3")
+    resp = await client.get("/library?page=1&per_page=3")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["tracks"]) == 3
-    assert data["limit"] == 3
-    assert data["offset"] == 0
+    assert data["per_page"] == 3
+    assert data["page"] == 1
+    assert data["total"] == 5
 
-    resp2 = await client.get("/library?offset=3&limit=3")
+    resp2 = await client.get("/library?page=2&per_page=3")
     assert resp2.status_code == 200
     assert len(resp2.json()["tracks"]) == 2
 
@@ -310,9 +311,9 @@ async def test_search_returns_tracks(client, test_engine):
     assert resp.status_code == 200
     data = resp.json()
     assert data["type"] == "track"
-    assert len(data["results"]) == 1
-    assert data["results"][0]["title"] == "Creep"
-    assert data["results"][0]["artist_name"] == "Radiohead"
+    assert len(data["tracks"]) == 1
+    assert data["tracks"][0]["title"] == "Creep"
+    assert data["tracks"][0]["artist_name"] == "Radiohead"
 
 
 async def test_search_returns_artists(client, test_engine):
@@ -338,8 +339,8 @@ async def test_search_returns_artists(client, test_engine):
     assert resp.status_code == 200
     data = resp.json()
     assert data["type"] == "artist"
-    assert data["results"][0]["name"] == "Radiohead"
-    assert "alternative rock" in data["results"][0]["genres"]
+    assert data["tracks"][0]["name"] == "Radiohead"
+    assert "alternative rock" in data["tracks"][0]["genres"]
 
 
 async def test_search_invalid_type(client, test_engine):

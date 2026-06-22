@@ -29,6 +29,9 @@ class TrackRepository:
         duration_ms: int | None = None,
         popularity: int | None = None,
         preview_url: str | None = None,
+        artist_name: str | None = None,
+        album_title: str | None = None,
+        image_url: str | None = None,
     ) -> str:
         now = datetime.utcnow()
         stmt = (
@@ -41,6 +44,9 @@ class TrackRepository:
                 duration_ms=duration_ms,
                 popularity=popularity,
                 preview_url=preview_url,
+                artist_name=artist_name,
+                album_title=album_title,
+                image_url=image_url,
                 created_at=now,
                 updated_at=now,
             )
@@ -52,6 +58,9 @@ class TrackRepository:
                     "duration_ms": duration_ms,
                     "popularity": popularity,
                     "preview_url": preview_url,
+                    "artist_name": artist_name,
+                    "album_title": album_title,
+                    "image_url": image_url,
                     "updated_at": now,
                 },
             )

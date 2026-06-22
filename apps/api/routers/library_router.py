@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Auth, Track, UserTrackData
@@ -26,22 +27,31 @@ async def _get_spotify_client(db: AsyncSession) -> SpotifyClient:
 
 @router.get("/library")
 async def library(
-    offset: int = Query(0, ge=0),  # noqa: B008
-    limit: int = Query(50, ge=1, le=200),  # noqa: B008
+    page: int = Query(1, ge=1),  # noqa: B008
+    per_page: int = Query(50, ge=1, le=200),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, Any]:
+    base_filter = or_(
+        UserTrackData.is_saved.is_(True),
+        UserTrackData.feedback == "like",
+    )
+
+    count_stmt = (
+        select(func.count())
+        .select_from(Track)
+        .join(UserTrackData, UserTrackData.track_id == Track.id)
+        .where(base_filter)
+    )
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    offset = (page - 1) * per_page
     stmt = (
         select(Track, UserTrackData)
         .join(UserTrackData, UserTrackData.track_id == Track.id)
-        .where(
-            or_(
-                UserTrackData.is_saved.is_(True),
-                UserTrackData.feedback == "like",
-            )
-        )
+        .where(base_filter)
         .order_by(Track.title)
         .offset(offset)
-        .limit(limit)
+        .limit(per_page)
     )
     result = await db.execute(stmt)
     rows = result.all()
@@ -52,6 +62,9 @@ async def library(
             {
                 "spotify_id": track.spotify_id,
                 "title": track.title,
+                "artist_name": track.artist_name,
+                "album_title": track.album_title,
+                "image_url": track.image_url,
                 "duration_ms": track.duration_ms,
                 "popularity": track.popularity,
                 "is_saved": user_data.is_saved,
@@ -62,7 +75,7 @@ async def library(
             }
         )
 
-    return {"tracks": tracks, "offset": offset, "limit": limit, "count": len(tracks)}
+    return {"tracks": tracks, "total": total, "page": page, "per_page": per_page}
 
 
 @router.get("/search")
@@ -76,6 +89,8 @@ async def search(
     fetcher = SpotifyFetcher(client)
     try:
         results = await fetcher.search(q=q, type=type, limit=limit)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e)) from e
     finally:
         await client.close()
 
@@ -107,4 +122,4 @@ async def search(
             if isinstance(a, Artist)
         ]
 
-    return {"results": items, "type": type, "count": len(items)}
+    return {"tracks": items, "type": type, "count": len(items)}

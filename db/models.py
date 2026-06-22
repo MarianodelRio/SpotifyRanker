@@ -117,6 +117,9 @@ class Track(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     popularity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     preview_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    artist_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    album_title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=_now, onupdate=_now, nullable=False
