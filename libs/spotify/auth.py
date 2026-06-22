@@ -17,6 +17,7 @@ _SCOPES = " ".join(
         "user-read-playback-state",
         "user-read-private",
         "user-read-email",
+        "user-modify-playback-state",
         "streaming",
         "playlist-modify-public",
         "playlist-modify-private",
