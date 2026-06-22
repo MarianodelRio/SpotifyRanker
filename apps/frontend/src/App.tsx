@@ -28,14 +28,14 @@ function AppContent() {
     <AuthProvider value={auth}>
       <PlayerProvider>
         <FeedbackProvider>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<MiMusica />} />
-            <Route path="/buscar" element={<Buscar />} />
-            <Route path="/descubrir" element={<Descubrir />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppLayout>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<MiMusica />} />
+              <Route path="/buscar" element={<Buscar />} />
+              <Route path="/descubrir" element={<Descubrir />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
         </FeedbackProvider>
       </PlayerProvider>
     </AuthProvider>
