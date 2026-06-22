@@ -3,7 +3,7 @@ id: T-035
 phase: 1
 agent: multi (data-persistence → backend-api → frontend)
 depends_on: []
-status: PR_OPEN
+status: DONE
 branch: feature/T-035-bugfix
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/24"
 ---
