@@ -3,9 +3,9 @@ id: T-021
 phase: 2
 agent: ML/Ranking
 depends_on: [T-020]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-021-inference-engine
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/25"
 ---
 
 ### T-021 — Inference engine
@@ -33,3 +33,4 @@ All inference runs in `torch.no_grad()`. No GPU assumed.
 - **`input_dim` derived dynamically:** `load_model()` builds a dummy `UserProfile()` and calls `build_user_features()` to get the exact feature vector length, rather than hardcoding the formula. This stays in sync if features.py ever changes.
 - **`TowerPair` imported from `trainer.py`:** as the T-020 notes intended. No duplicate definition.
 - **22 unit tests pass.** Covers: missing files error, actionable error message, eval mode, 32-dim output, L2 normalization, determinism, empty profile/unknown genres edge cases, scores in [-1, 1], 500-candidate perf < 2s.
+- **PR Reviewer:** performance test times only `score_candidates()` batched matmul, not the 500 individual `compute_item_embedding()` forward passes. Full pipeline is fast in practice but not formally timed. Not blocking.
