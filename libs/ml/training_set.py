@@ -74,6 +74,14 @@ def _compute_label_weight(utd: UserTrackData) -> tuple[float, float]:
     if utd.top_position_long is not None:
         signals.append((0.55, 0.5))
 
+    # Declared artist (popular: 0.90/0.8, rest: 0.60/0.6)
+    if utd.declared_artist_label is not None and utd.declared_artist_weight is not None:
+        signals.append((utd.declared_artist_label, utd.declared_artist_weight))
+
+    # Declared playlist tracks (0.80/0.7)
+    if utd.declared_playlist_label is not None and utd.declared_playlist_weight is not None:
+        signals.append((utd.declared_playlist_label, utd.declared_playlist_weight))
+
     # Skip signal: any play event where ms_played < 10% of track duration
     track = utd.track
     if track and track.duration_ms and track.duration_ms > 0:

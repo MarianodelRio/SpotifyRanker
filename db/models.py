@@ -175,6 +175,11 @@ class UserTrackData(Base):
     top_position_short: Mapped[int | None] = mapped_column(Integer, nullable=True)
     top_position_medium: Mapped[int | None] = mapped_column(Integer, nullable=True)
     top_position_long: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    declared_artist_label: Mapped[float | None] = mapped_column(Float, nullable=True)
+    declared_artist_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    declared_artist_spotify_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    declared_playlist_label: Mapped[float | None] = mapped_column(Float, nullable=True)
+    declared_playlist_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     track: Mapped["Track"] = relationship("Track", back_populates="user_data", lazy="select")
 
@@ -263,3 +268,25 @@ class Auth(Base):
     )
     import_started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     import_completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+# ── Onboarding Declarations ────────────────────────────────────────────────────
+
+
+class DeclaredArtist(Base):
+    __tablename__ = "declared_artists"
+
+    spotify_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    track_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+
+
+class DeclaredPlaylist(Base):
+    __tablename__ = "declared_playlists"
+
+    spotify_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(512), nullable=False)
+    track_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)

@@ -24,6 +24,11 @@ class UserTrackDataRepository:
         top_position_short: int | None = None,
         top_position_medium: int | None = None,
         top_position_long: int | None = None,
+        declared_artist_label: float | None = None,
+        declared_artist_weight: float | None = None,
+        declared_artist_spotify_id: str | None = None,
+        declared_playlist_label: float | None = None,
+        declared_playlist_weight: float | None = None,
     ) -> None:
         values: dict[str, Any] = {"track_id": track_id}
         set_: dict[str, Any] = {}
@@ -52,6 +57,21 @@ class UserTrackDataRepository:
         if top_position_long is not None:
             values["top_position_long"] = top_position_long
             set_["top_position_long"] = top_position_long
+        if declared_artist_label is not None:
+            values["declared_artist_label"] = declared_artist_label
+            set_["declared_artist_label"] = declared_artist_label
+        if declared_artist_weight is not None:
+            values["declared_artist_weight"] = declared_artist_weight
+            set_["declared_artist_weight"] = declared_artist_weight
+        if declared_artist_spotify_id is not None:
+            values["declared_artist_spotify_id"] = declared_artist_spotify_id
+            set_["declared_artist_spotify_id"] = declared_artist_spotify_id
+        if declared_playlist_label is not None:
+            values["declared_playlist_label"] = declared_playlist_label
+            set_["declared_playlist_label"] = declared_playlist_label
+        if declared_playlist_weight is not None:
+            values["declared_playlist_weight"] = declared_playlist_weight
+            set_["declared_playlist_weight"] = declared_playlist_weight
 
         stmt = insert(UserTrackData).values(**values)
         if set_:

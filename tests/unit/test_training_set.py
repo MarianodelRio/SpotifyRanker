@@ -224,3 +224,139 @@ async def test_training_example_has_numpy_feature_arrays(session):
     assert isinstance(ex.user_features, np.ndarray)
     assert isinstance(ex.track_features, np.ndarray)
     assert ex.track_id == "t1"
+
+
+# ── Declared signals ───────────────────────────────────────────────────────────
+
+
+async def test_declared_artist_popular_label(session):
+    """Declared-artist popular track gets label=0.90, weight=0.8."""
+    await _add_track(session, "t1")
+    await _add_utd(
+        session,
+        "t1",
+        declared_artist_label=0.90,
+        declared_artist_weight=0.8,
+        declared_artist_spotify_id="artist_abc",
+    )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 0.90
+    assert examples[0].weight == 0.8
+
+
+async def test_declared_artist_rest_label(session):
+    """Declared-artist non-popular track gets label=0.60, weight=0.6."""
+    await _add_track(session, "t1")
+    await _add_utd(
+        session,
+        "t1",
+        declared_artist_label=0.60,
+        declared_artist_weight=0.6,
+        declared_artist_spotify_id="artist_abc",
+    )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 0.60
+    assert examples[0].weight == 0.6
+
+
+async def test_declared_playlist_label(session):
+    """Declared-playlist track gets label=0.80, weight=0.7."""
+    await _add_track(session, "t1")
+    await _add_utd(
+        session,
+        "t1",
+        declared_playlist_label=0.80,
+        declared_playlist_weight=0.7,
+    )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 0.80
+    assert examples[0].weight == 0.7
+
+
+async def test_declared_artist_beats_declared_playlist(session):
+    """When both signals exist, the higher label wins (artist popular=0.90 > playlist=0.80)."""
+    await _add_track(session, "t1")
+    await _add_utd(
+        session,
+        "t1",
+        declared_artist_label=0.90,
+        declared_artist_weight=0.8,
+        declared_artist_spotify_id="artist_abc",
+        declared_playlist_label=0.80,
+        declared_playlist_weight=0.7,
+    )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 0.90
+    assert examples[0].weight == 0.8
+
+
+async def test_save_beats_declared_signal(session):
+    """A Spotify save (1.0) always wins over any declared signal."""
+    await _add_track(session, "t1")
+    await _add_utd(
+        session,
+        "t1",
+        is_saved=True,
+        save_source=SaveSource.spotify,
+        declared_artist_label=0.90,
+        declared_artist_weight=0.8,
+        declared_artist_spotify_id="artist_abc",
+    )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 1.0
+    assert examples[0].weight == 1.0
+
+
+async def test_clearing_declared_artist_reverts_to_implicit_negative(session):
+    """After clearing declared artist fields, the track falls back to implicit negative."""
+    await _add_track(session, "t1")
+    utd = await _add_utd(
+        session,
+        "t1",
+        declared_artist_label=0.90,
+        declared_artist_weight=0.8,
+        declared_artist_spotify_id="artist_abc",
+    )
+    await session.commit()
+
+    utd.declared_artist_label = None
+    utd.declared_artist_weight = None
+    utd.declared_artist_spotify_id = None
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert examples[0].label == 0.1
+    assert examples[0].weight == 0.3
+
+
+async def test_declaring_artist_increases_example_count(session):
+    """Declaring an artist increases the training set size."""
+    for i in range(5):
+        tid = f"existing_{i}"
+        await _add_track(session, tid)
+        await _add_utd(session, tid, is_saved=True, save_source=SaveSource.spotify)
+
+    for i in range(10):
+        tid = f"declared_{i}"
+        await _add_track(session, tid)
+        await _add_utd(
+            session,
+            tid,
+            declared_artist_label=0.60,
+            declared_artist_weight=0.6,
+            declared_artist_spotify_id="artist_abc",
+        )
+    await session.commit()
+
+    examples = await build_training_set(session, _empty_profile())
+    assert len(examples) >= 15

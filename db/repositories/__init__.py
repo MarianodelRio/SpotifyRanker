@@ -1,6 +1,7 @@
 from db.repositories.album import AlbumRepository
 from db.repositories.artist import ArtistRepository
 from db.repositories.auth import AuthRepository
+from db.repositories.declared import DeclaredArtistRepository, DeclaredPlaylistRepository
 from db.repositories.genre import GenreRepository
 from db.repositories.play_event import PlayEventRepository
 from db.repositories.playlist import PlaylistRepository
@@ -11,6 +12,8 @@ __all__ = [
     "AlbumRepository",
     "ArtistRepository",
     "AuthRepository",
+    "DeclaredArtistRepository",
+    "DeclaredPlaylistRepository",
     "GenreRepository",
     "PlayEventRepository",
     "PlaylistRepository",
