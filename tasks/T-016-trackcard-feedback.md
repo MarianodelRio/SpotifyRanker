@@ -3,9 +3,9 @@ id: T-016
 phase: 1
 agent: Frontend
 depends_on: [T-015, T-009]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-016-trackcard-feedback
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/22"
 ---
 
 ### T-016 — TrackCard + feedback UI
@@ -35,3 +35,5 @@ Build the final `TrackCard` component with like/dislike buttons, and add like/di
 - `PlayerPanel` reads `currentSource` from `PlayerContext` (already in `PlayerContextValue`) to pass the correct source when submitting feedback.
 - `tsc --noEmit` and `eslint` both pass clean.
 - Like shows filled ♥ (green), dislike shows ✕ (red); neutral shows ♡ / ✕ in muted zinc.
+- PR Reviewer note: T-016 core implementation (`19fc061`) was merged to master via PR #21 (T-020 training loop) due to git branch contamination during parallel orchestration. PR #22 formally closes T-016 and adds only the `App.tsx` indentation fix (FeedbackProvider nesting). All acceptance criteria were verified in the feature branch diff; `tsc` and `eslint` pass clean.
+- PR Reviewer note: `useCallback` in `FeedbackContext` depends on `feedbackMap` — this recreates `submitFeedback` on each feedback action, causing re-renders in consumers. Acceptable for current scale; worth noting for future optimization.
