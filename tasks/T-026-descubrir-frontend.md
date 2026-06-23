@@ -3,8 +3,8 @@ id: T-026
 phase: 2
 agent: Frontend
 depends_on: [T-025, T-015]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-026-descubrir-frontend
 pr: ""
 ---
 
@@ -28,4 +28,9 @@ Build the Descubrir section — the main discovery UI where the user generates a
 - Spinner shown during generation. Error message shown if generation fails.
 
 **Notes**
-_Orchestrator fills after completion._
+- `useDescubrir.ts` is a single custom hook owning all state (mode, size, loading, error, playlist, history, spotifyUrl). No context needed — Descubrir state is local to this section.
+- Score breakdown uses a native `<details>/<summary>` element per track, collapsed by default. Renders `RankedTrack.score_breakdown` key-value pairs and `final_score`.
+- History is fetched once on mount via `getPlaylistHistory()`; new generates prepend to it.
+- Export disables the button and shows "✓ Exported" + an "Open in Spotify ↗" link once successful.
+- `TrackCard` is reused as-is; track is accessed via `ranked.candidate.track` (matches the actual `RankedTrack` shape in `types/api.ts`).
+- `tsc --noEmit` and `eslint` both pass clean.
