@@ -3,8 +3,8 @@ id: T-033
 phase: 4
 agent: Backend/API
 depends_on: [T-030]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-033-edge-case-hardening
 pr: ""
 ---
 
@@ -27,4 +27,8 @@ Harden the system against the most likely failure modes in a personal-use produc
 - A partial import (e.g., artist fetch fails halfway) completes the saved tracks portion and marks status as `partial`.
 
 **Notes**
-_Orchestrator fills after completion._
+- Added `ImportStatus.partial` to `libs/common/enums.py` (human-approved protected file change) and synced `apps/frontend/src/types/api.ts`.
+- `_run_import` now wraps artist-fetch in its own try/except; saved-tracks phase always runs. Final status resolves to `partial` (artists failed, tracks ok), `completed` (all ok), or `failed` (tracks failed).
+- Created `apps/api/routers/playlist_router.py` stub with model-not-trained (400) and empty-library (400) guards. Full pipeline deferred to T-025.
+- Token refresh mid-import and 429 backoff were already implemented — no changes needed, only verified and documented.
+- Pre-existing mypy error in `libs/candidates/sources/artist_discography.py` (fetch_artist_albums attribute) is outside this agent's scope — not fixed.
