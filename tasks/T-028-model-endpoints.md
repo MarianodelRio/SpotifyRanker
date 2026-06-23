@@ -3,8 +3,8 @@ id: T-028
 phase: 3
 agent: Backend/API
 depends_on: [T-027]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-028-model-endpoints
 pr: ""
 ---
 
@@ -24,4 +24,8 @@ Expose the model management API endpoints.
 - If no model has been trained yet, `GET /model/status` returns a clear state (not an error).
 
 **Notes**
-_Orchestrator fills after completion._
+- Router file created as `apps/api/routers/model_router.py` (task spec said `model.py` but convention in the project is `*_router.py` suffix — applied consistently).
+- `POST /model/train` returns `{status: "already_running"}` if `training_in_progress` is already set, avoiding concurrent retrains.
+- `_run_manual_retrain()` extends `models_store/training_state.json` with `last_loss` and `examples_count` after training; the auto-trigger path (`libs/feedback/trigger.py`) is unchanged and leaves those fields unset (null) — both paths share the same state file safely via the `training_in_progress` guard.
+- 9 integration tests added covering: no-model state, full state, in-progress flag, corrupt file, started/already-running guards, success path, and failure path (flag cleared on exception).
+- All 293 tests pass; ruff and mypy clean.
