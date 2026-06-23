@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from sqlalchemy import select
@@ -26,6 +27,7 @@ from libs.ml.models.user_tower import UserTower
 from libs.ml.training_set import TrainingExample, build_training_set
 
 _MODELS_STORE = Path("models_store")
+_EMBEDDING_CACHE_PATH = _MODELS_STORE / "item_embeddings.npz"
 _TAU = 0.1
 _DEFAULT_EPOCHS = 20
 _DEFAULT_LR = 1e-3
@@ -139,6 +141,9 @@ async def train(
     item_tower.eval()
     torch.save(user_tower.state_dict(), _MODELS_STORE / "user_tower.pt")
     torch.save(item_tower.state_dict(), _MODELS_STORE / "item_tower.pt")
+
+    towers = TowerPair(user_tower=user_tower, item_tower=item_tower)
+    await _build_embedding_cache(session, towers, vocab)
 
     return TrainingResult(
         epochs=epochs,
@@ -301,3 +306,64 @@ async def _load_track_metadata(
         }
 
     return meta
+
+
+def _save_embedding_cache(cache: dict[str, Any]) -> None:
+    """Persist spotify_id → embedding mapping to disk as a numpy archive."""
+    np.savez(_EMBEDDING_CACHE_PATH, **cache)
+
+
+async def _build_embedding_cache(
+    session: AsyncSession,
+    towers: TowerPair,
+    vocab: list[str],
+) -> None:
+    """Query all tracks from DB, compute item embeddings in batch, write cache to disk.
+
+    Invalidates any previous cache — call after every retraining.
+    """
+    stmt = select(DBTrack).options(
+        selectinload(DBTrack.artist_links)
+        .selectinload(TrackArtist.artist)
+        .selectinload(Artist.genres)
+    )
+    result = await session.scalars(stmt)
+    db_tracks = list(result.unique())
+
+    if not db_tracks:
+        _save_embedding_cache({})
+        return
+
+    spotify_ids: list[str] = []
+    features_list: list[Any] = []
+
+    for db_track in db_tracks:
+        primary_artist = next(
+            (ta.artist for ta in db_track.artist_links if ta.is_primary), None
+        ) or (db_track.artist_links[0].artist if db_track.artist_links else None)
+
+        genres: list[str] = []
+        artist_popularity = 0
+        if primary_artist:
+            genres = [g.name for g in primary_artist.genres]
+            artist_popularity = primary_artist.popularity or 0
+
+        common_track = CommonTrack(
+            spotify_id=db_track.spotify_id,
+            title=db_track.title,
+            artist_name=primary_artist.name if primary_artist else "",
+            album_title="",
+            duration_ms=db_track.duration_ms or 0,
+            popularity=db_track.popularity or 0,
+        )
+        features = build_track_features(common_track, genres, artist_popularity, vocab)
+        spotify_ids.append(db_track.spotify_id)
+        features_list.append(features)
+
+    track_tensor = torch.tensor(np.stack(features_list), dtype=torch.float32)
+    towers.item_tower.eval()
+    with torch.no_grad():
+        embs = towers.item_tower(track_tensor).numpy()
+
+    cache: dict[str, Any] = {sid: embs[i] for i, sid in enumerate(spotify_ids)}
+    _save_embedding_cache(cache)

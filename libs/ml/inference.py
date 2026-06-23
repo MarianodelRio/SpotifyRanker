@@ -12,6 +12,7 @@ from libs.ml.models.user_tower import UserTower
 from libs.ml.trainer import TowerPair
 
 _MODELS_STORE = Path("models_store")
+_EMBEDDING_CACHE_PATH = _MODELS_STORE / "item_embeddings.npz"
 
 
 class ModelNotTrainedError(Exception):
@@ -84,6 +85,17 @@ def compute_item_embedding(
         emb = towers.item_tower(tensor)
     result: np.ndarray[tuple[int], np.dtype[np.float32]] = emb.squeeze(0).numpy()
     return result
+
+
+def load_embedding_cache() -> dict[str, np.ndarray[tuple[int], np.dtype[np.float32]]]:
+    """Load pre-computed item embeddings from disk. Returns empty dict if cache not yet built."""
+    if not _EMBEDDING_CACHE_PATH.exists():
+        return {}
+    data = np.load(_EMBEDDING_CACHE_PATH)
+    cache: dict[str, np.ndarray[tuple[int], np.dtype[np.float32]]] = {
+        key: data[key] for key in data.files
+    }
+    return cache
 
 
 def score_candidates(
