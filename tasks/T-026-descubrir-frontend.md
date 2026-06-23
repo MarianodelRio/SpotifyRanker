@@ -3,9 +3,9 @@ id: T-026
 phase: 2
 agent: Frontend
 depends_on: [T-025, T-015]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-026-descubrir-frontend
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/35"
 ---
 
 ### T-026 — Descubrir section frontend
@@ -34,3 +34,4 @@ Build the Descubrir section — the main discovery UI where the user generates a
 - Export disables the button and shows "✓ Exported" + an "Open in Spotify ↗" link once successful.
 - `TrackCard` is reused as-is; track is accessed via `ranked.candidate.track` (matches the actual `RankedTrack` shape in `types/api.ts`).
 - `tsc --noEmit` and `eslint` both pass clean.
+- PR Reviewer: rebase resolved one mechanical conflict in `tasks/T-026-descubrir-frontend.md` (IN_PROGRESS vs READY_FOR_PR status — kept master's value). All 350 pytest pass, ruff clean, tsc clean, eslint clean.
