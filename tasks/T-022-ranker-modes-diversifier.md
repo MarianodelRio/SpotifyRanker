@@ -3,9 +3,9 @@ id: T-022
 phase: 2
 agent: ML/Ranking
 depends_on: [T-021, T-010]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-022-ranker-modes-diversifier
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/29"
 ---
 
 ### T-022 — Ranker + modes + diversifier
@@ -30,3 +30,4 @@ Build the full ranking layer: score candidates with the ML model, apply mode-spe
 - `diversifier.py` accepts an optional `genres_map: dict[str, list[str]] | None`. Genre cap is enforced when it is provided; artist cap is always enforced. `Track` has no genres field, so callers must inject genres externally if genre diversification is needed.
 - `ranker.py` also accepts optional `genres_map` and `artist_popularity_map` for richer embeddings; both default to `None` for backward-compatible usage.
 - All 301 tests pass; mypy and ruff clean.
+- PR Reviewer: `ranker.py` has 0% unit test coverage (expected — requires trained model files). `modes.py` and `diversifier.py` are both 100%. Overall libs/ coverage is 88%. Flagged for human review: unknown-artist detection logic at modes.py:59-64 and the once-per-call `get_vocab()` disk read in ranker.py:42.
