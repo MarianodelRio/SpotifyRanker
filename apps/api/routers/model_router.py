@@ -6,8 +6,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.session import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,9 @@ class ModelStatus(BaseModel):
     examples_count: int
     training_in_progress: bool
     last_loss: float | None
+    like_rate: float | None
+    diversity_score: float | None
+    loss_history: list[float]
 
 
 def _load_state() -> dict[str, Any]:
@@ -62,9 +68,12 @@ async def _run_manual_retrain() -> None:
         async with AsyncSessionLocal() as session:
             profile = await build_profile(session)
             result = await train(session, profile)
+        from libs.ml.metrics import append_loss_history
+
         state["last_trained_at"] = result.trained_at.isoformat()
         state["examples_count"] = result.examples_count
         state["last_loss"] = result.final_loss
+        append_loss_history(state, result.final_loss)
         logger.info(
             "Manual retraining completed: loss=%.4f, examples=%d",
             result.final_loss,
@@ -89,7 +98,11 @@ async def trigger_training(background_tasks: BackgroundTasks) -> TrainResponse:
 
 
 @router.get("/status", response_model=ModelStatus)
-async def get_model_status() -> ModelStatus:
+async def get_model_status(
+    session: AsyncSession = Depends(get_db),  # noqa: B008
+) -> ModelStatus:
+    from libs.ml.metrics import compute_diversity_score, compute_like_rate
+
     state = _load_state()
     trained_at_raw = state.get("last_trained_at")
     trained_at: datetime | None = (
@@ -97,9 +110,14 @@ async def get_model_status() -> ModelStatus:
     )
     last_loss_raw = state.get("last_loss")
     last_loss: float | None = float(last_loss_raw) if last_loss_raw is not None else None
+    like_rate = await compute_like_rate(session)
+    diversity_score = await compute_diversity_score(session)
     return ModelStatus(
         trained_at=trained_at,
         examples_count=int(state.get("examples_count", 0)),
         training_in_progress=bool(state.get("training_in_progress", False)),
         last_loss=last_loss,
+        like_rate=like_rate,
+        diversity_score=diversity_score,
+        loss_history=state.get("loss_history", []),
     )

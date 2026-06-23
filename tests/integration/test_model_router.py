@@ -7,17 +7,32 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from apps.api.main import app
+from db.models import Base
+from db.session import get_db
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
 async def client():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def override_db():
+        async with factory() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+    app.dependency_overrides.clear()
+    await engine.dispose()
 
 
 # ── GET /model/status ─────────────────────────────────────────────────────────
@@ -35,6 +50,9 @@ async def test_get_model_status_no_model(client: AsyncClient, tmp_path: Path) ->
     assert body["examples_count"] == 0
     assert body["training_in_progress"] is False
     assert body["last_loss"] is None
+    assert body["like_rate"] is None
+    assert body["diversity_score"] is None
+    assert body["loss_history"] == []
 
 
 async def test_get_model_status_with_model(client: AsyncClient, tmp_path: Path) -> None:
@@ -58,6 +76,7 @@ async def test_get_model_status_with_model(client: AsyncClient, tmp_path: Path) 
     assert body["examples_count"] == 250
     assert body["training_in_progress"] is False
     assert abs(body["last_loss"] - 0.3142) < 1e-6
+    assert body["loss_history"] == []
 
 
 async def test_get_model_status_training_in_progress(client: AsyncClient, tmp_path: Path) -> None:
