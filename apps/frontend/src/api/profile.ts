@@ -1,8 +1,8 @@
 import { apiFetch } from "./client";
-import type { UserProfile, DeclaredItem } from "../types/api";
+import type { ProfileResponse, DeclaredResponse } from "../types/api";
 
-export function getProfile(): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/profile");
+export function getProfile(): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>("/profile");
 }
 
 export async function addArtist(spotifyId: string): Promise<void> {
@@ -19,8 +19,8 @@ export async function addPlaylist(spotifyId: string): Promise<void> {
   });
 }
 
-export function getDeclared(): Promise<DeclaredItem[]> {
-  return apiFetch<DeclaredItem[]>("/profile/declared");
+export function getDeclared(): Promise<DeclaredResponse> {
+  return apiFetch<DeclaredResponse>("/profile/declared");
 }
 
 export async function removeArtist(id: string): Promise<void> {

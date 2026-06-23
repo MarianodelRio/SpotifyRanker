@@ -4,6 +4,7 @@ import LoginPage from "./components/auth/LoginPage";
 import MiMusica from "./sections/MiMusica";
 import Buscar from "./sections/Buscar";
 import Descubrir from "./sections/Descubrir";
+import Profile from "./sections/Profile";
 import { useAuth } from "./hooks/useAuth";
 import { AuthProvider } from "./context/AuthContext";
 import { PlayerProvider } from "./context/PlayerContext";
@@ -33,6 +34,7 @@ function AppContent() {
               <Route path="/" element={<MiMusica />} />
               <Route path="/buscar" element={<Buscar />} />
               <Route path="/descubrir" element={<Descubrir />} />
+              <Route path="/perfil" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AppLayout>

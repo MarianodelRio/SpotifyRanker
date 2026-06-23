@@ -101,13 +101,40 @@ export interface SearchResult {
 export interface ModelStatus {
   trained_at: string | null;
   examples_count: number;
-  active_level: string;
+  training_in_progress: boolean;
+  last_loss: number | null;
 }
 
-export interface DeclaredItem {
+export interface DeclaredArtist {
   spotify_id: string;
   name: string;
-  type: "artist" | "playlist";
+  image_url: string | null;
+  track_count: number;
+  created_at: string;
+}
+
+export interface DeclaredPlaylist {
+  spotify_id: string;
+  name: string;
+  track_count: number;
+  created_at: string;
+}
+
+export interface DeclaredResponse {
+  artists: DeclaredArtist[];
+  playlists: DeclaredPlaylist[];
+}
+
+export interface ProfileResponse {
+  genre_weights: Record<string, number>;
+  top_artists: Record<string, number>;
+  stats: {
+    total_tracks: number;
+    global_like_ratio: number;
+    diversity_score: number;
+    declared_artists: number;
+    declared_playlists: number;
+  };
 }
 
 // Request shapes
