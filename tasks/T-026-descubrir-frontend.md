@@ -3,7 +3,7 @@ id: T-026
 phase: 2
 agent: Frontend
 depends_on: [T-025, T-015]
-status: PR_OPEN
+status: DONE
 branch: feature/T-026-descubrir-frontend
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/35"
 ---
