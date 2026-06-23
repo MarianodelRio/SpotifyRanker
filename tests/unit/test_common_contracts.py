@@ -34,6 +34,7 @@ def test_import_status_values() -> None:
         ImportStatus.idle,
         ImportStatus.running,
         ImportStatus.completed,
+        ImportStatus.partial,
         ImportStatus.failed,
     }
 
