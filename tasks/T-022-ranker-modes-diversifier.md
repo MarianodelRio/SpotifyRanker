@@ -3,8 +3,8 @@ id: T-022
 phase: 2
 agent: ML/Ranking
 depends_on: [T-021, T-010]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-022-ranker-modes-diversifier
 pr: ""
 ---
 
@@ -25,4 +25,8 @@ Build the full ranking layer: score candidates with the ML model, apply mode-spe
 - `RankedTrack` objects match the `common.models.RankedTrack` schema exactly.
 
 **Notes**
-_Orchestrator fills after completion._
+- `modes.py` implements a `ModeWeights` frozen dataclass with constants for `safe`/`balanced`/`adventurous` (mapped from enum values). `apply_mode()` returns `(final_score, score_breakdown)` with keys: `base_score`, `artist_affinity_bonus`, `novelty_adjustment`, `popularity_adjustment`, `mode_weight`.
+- Unknown-artist detection: `artist_affinity_score == 0.0` AND artist not in `profile.artist_affinities`. This correctly handles candidates from outside the user's known artists.
+- `diversifier.py` accepts an optional `genres_map: dict[str, list[str]] | None`. Genre cap is enforced when it is provided; artist cap is always enforced. `Track` has no genres field, so callers must inject genres externally if genre diversification is needed.
+- `ranker.py` also accepts optional `genres_map` and `artist_popularity_map` for richer embeddings; both default to `None` for backward-compatible usage.
+- All 301 tests pass; mypy and ruff clean.
