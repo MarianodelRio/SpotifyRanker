@@ -3,7 +3,7 @@ id: T-025
 phase: 2
 agent: Backend/API
 depends_on: [T-024, T-008]
-status: PR_OPEN
+status: DONE
 branch: feature/T-025-playlist-endpoints
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/34"
 ---
