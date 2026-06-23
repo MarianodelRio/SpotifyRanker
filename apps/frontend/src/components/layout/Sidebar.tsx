@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Mi música" },
   { to: "/buscar", label: "Buscar" },
   { to: "/descubrir", label: "Descubrir" },
+  { to: "/perfil", label: "Perfil" },
 ] as const;
 
 export default function Sidebar() {
