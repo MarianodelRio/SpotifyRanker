@@ -3,9 +3,9 @@ id: T-024
 phase: 2
 agent: Domain Core
 depends_on: [T-022, T-023, T-007]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-024-playlist-assembler
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/30"
 ---
 
 ### T-024 — Playlist assembler + Spotify exporter
@@ -29,3 +29,4 @@ Build the playlist assembly and export module — the last step of the recommend
 - Assembler uses the SQLAlchemy session directly (no repository layer) to write `Playlist` + `PlaylistTrack` rows.
 - Exporter is idempotent: always creates a new Spotify playlist rather than checking for an existing one.
 - 15 new unit tests; full suite 325 passed.
+- PR Reviewer notes: cross-boundary `libs/spotify/` touch is the main thing to scrutinize. `post()` on SpotifyClient is a straightforward port of `get()` — no structural concerns. `PlaylistRepository` was intentionally not extended to avoid touching `db/` (different agent). The assembler's direct session use is clean and tested.
