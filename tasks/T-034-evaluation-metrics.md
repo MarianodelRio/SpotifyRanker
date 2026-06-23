@@ -3,7 +3,7 @@ id: T-034
 phase: 4
 agent: ML/Ranking
 depends_on: [T-028, T-025]
-status: PR_OPEN
+status: DONE
 branch: feature/T-034-evaluation-metrics
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/36"
 ---
