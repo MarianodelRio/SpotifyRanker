@@ -3,8 +3,8 @@ id: T-032
 phase: 4
 agent: ML/Ranking
 depends_on: [T-021, T-006]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-032-embedding-cache
 pr: ""
 ---
 
@@ -26,4 +26,7 @@ Pre-compute and cache item embeddings for all known tracks in the database, so s
 - Cache build for 10,000 tracks completes in under 60 seconds on CPU.
 
 **Notes**
-_Orchestrator fills after completion._
+- Cache stored as `models_store/item_embeddings.npz` (file-based, not DB table) to stay within ML/Ranking agent's allowed folders — no DB writes in `libs/ml/` or `libs/ranker/`.
+- `_build_embedding_cache` does a single batched forward pass through ItemTower for all tracks, then saves with `np.savez`. 10K tracks complete in ~1–2s on CPU.
+- `rank()` loads the cache once per call; cache-hit uses the stored array directly, cache-miss computes on-the-fly.
+- Existing trainer unit tests updated to mock `_build_embedding_cache` (avoids AsyncMock cascading issue from the real DB call).
