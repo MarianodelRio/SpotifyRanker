@@ -8,8 +8,8 @@ export interface PlayerContextValue {
   currentSource: PlaySource | null;
   error: string | null;
   playTrack: (track: Track, source: PlaySource) => Promise<void>;
-  togglePlay: () => void;
-  skipToNext: () => void;
+  togglePlay: () => Promise<void>;
+  skipToNext: () => Promise<void>;
   getPositionMs: () => number;
 }
 

@@ -60,7 +60,7 @@ class SpotifyFetcher:
         return _parse_artist(data)
 
     async def fetch_artist_top_tracks(self, artist_id: str) -> list[Track]:
-        data = await self._client.get(f"/artists/{artist_id}/top-tracks", market="from_token")
+        data = await self._client.get(f"/artists/{artist_id}/top-tracks")
         return [_parse_track(item) for item in data.get("tracks", []) if item]
 
     # ── Playlist metadata ─────────────────────────────────────────────────────
@@ -71,13 +71,22 @@ class SpotifyFetcher:
 
     # ── Artist albums ─────────────────────────────────────────────────────────
 
-    async def fetch_artist_albums(self, artist_id: str) -> list[dict[str, Any]]:
-        items = await self._client.get_paginated(
-            f"/artists/{artist_id}/albums",
-            include_groups="album,single",
-            limit=50,
+    async def fetch_artist_tracks_via_search(
+        self, artist_id: str, artist_name: str
+    ) -> list[dict[str, Any]]:
+        """Fetch tracks for an artist using search (catalog endpoints blocked in dev mode)."""
+        raw_items = await self._client.get_paginated(
+            "/search", q=artist_name, type="track", limit=10
         )
-        return items
+        seen_ids: set[str] = set()
+        results: list[dict[str, Any]] = []
+        for item in raw_items:
+            if not item or not item.get("id") or item["id"] in seen_ids:
+                continue
+            if artist_id in {a["id"] for a in item.get("artists", [])}:
+                seen_ids.add(item["id"])
+                results.append(item)
+        return results
 
     # ── Album tracks ──────────────────────────────────────────────────────────
 
@@ -89,7 +98,7 @@ class SpotifyFetcher:
         items = await self._client.get_paginated(f"/albums/{album_id}/tracks", limit=50)
         tracks: list[Track] = []
         for item in items:
-            if not item:
+            if not item or not item.get("id"):
                 continue
             artists = item.get("artists", [])
             artist_name = artists[0]["name"] if artists else ""

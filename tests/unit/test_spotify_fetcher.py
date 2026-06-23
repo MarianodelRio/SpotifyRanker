@@ -114,21 +114,51 @@ async def test_fetch_top_artists_invalid_time_range():
         await fetcher.fetch_top_artists("bad_range")
 
 
-# ── fetch_artist_albums ───────────────────────────────────────────────────────
+# ── fetch_artist_tracks_via_search ───────────────────────────────────────────
 
 
-async def test_fetch_artist_albums_returns_raw_dicts():
-    album_raw = {"id": "album_1", "name": "Album One", "album_type": "album"}
-    client = _make_client(paginated_return=[album_raw])
+async def test_fetch_artist_tracks_via_search_filters_by_artist_id():
+    artist_id = "artist_123"
+    matching = {
+        "id": "t1",
+        "name": "Hit Song",
+        "duration_ms": 200_000,
+        "artists": [{"id": artist_id, "name": "Artist X"}],
+        "album": {"id": "alb1", "name": "Album One", "album_type": "album",
+                  "release_date": "2022-01-01", "total_tracks": 10, "images": []},
+    }
+    other_artist = {
+        "id": "t2",
+        "name": "Other Song",
+        "duration_ms": 180_000,
+        "artists": [{"id": "other_artist", "name": "Other Artist"}],
+        "album": {"id": "alb2", "name": "Other Album", "album_type": "single",
+                  "release_date": "2023-01-01", "total_tracks": 1, "images": []},
+    }
+    client = _make_client(paginated_return=[matching, other_artist])
     fetcher = SpotifyFetcher(client)
-    result = await fetcher.fetch_artist_albums("artist_123")
+    result = await fetcher.fetch_artist_tracks_via_search(artist_id, "Artist X")
 
-    assert result == [album_raw]
-    client.get_paginated.assert_awaited_once_with(
-        "/artists/artist_123/albums",
-        include_groups="album,single",
-        limit=50,
-    )
+    assert len(result) == 1
+    assert result[0]["id"] == "t1"
+    client.get_paginated.assert_awaited_once_with("/search", q="Artist X", type="track", limit=10)
+
+
+async def test_fetch_artist_tracks_via_search_deduplicates():
+    artist_id = "artist_123"
+    track = {
+        "id": "t1",
+        "name": "Hit Song",
+        "duration_ms": 200_000,
+        "artists": [{"id": artist_id, "name": "Artist X"}],
+        "album": {"id": "alb1", "name": "Album One", "album_type": "album",
+                  "release_date": "2022-01-01", "total_tracks": 10, "images": []},
+    }
+    client = _make_client(paginated_return=[track, track])  # same track twice
+    fetcher = SpotifyFetcher(client)
+    result = await fetcher.fetch_artist_tracks_via_search(artist_id, "Artist X")
+
+    assert len(result) == 1
 
 
 # ── fetch_album_tracks ────────────────────────────────────────────────────────

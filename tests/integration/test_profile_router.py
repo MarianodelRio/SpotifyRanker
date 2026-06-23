@@ -163,24 +163,36 @@ async def test_declare_artist_unauthenticated(client):
 async def test_declare_artist_imports_tracks(authed_client):
     mock_fetcher = MagicMock()
     mock_fetcher.fetch_artist = AsyncMock(return_value=_mock_artist())
-    mock_fetcher.fetch_artist_top_tracks = AsyncMock(
-        return_value=[_mock_track("track_top_1"), _mock_track("track_top_2")]
-    )
-    mock_fetcher.fetch_artist_albums = AsyncMock(
+    mock_fetcher.fetch_artist_tracks_via_search = AsyncMock(
         return_value=[
             {
-                "id": "album_1",
-                "name": "Album One",
-                "release_date": "2022-05-01",
-                "total_tracks": 2,
-                "images": [{"url": "https://img.example.com/a1.jpg"}],
-            }
-        ]
-    )
-    mock_fetcher.fetch_album_tracks = AsyncMock(
-        return_value=[
-            _mock_track("track_top_1", "Top Hit"),
-            _mock_track("track_other_1", "Deep Cut", popularity=20),
+                "id": "track_top_1",
+                "name": "Top Hit",
+                "duration_ms": 200_000,
+                "artists": [{"id": "artist_123", "name": "Test Artist"}],
+                "album": {
+                    "id": "album_1",
+                    "name": "Album One",
+                    "album_type": "album",
+                    "release_date": "2022-05-01",
+                    "total_tracks": 2,
+                    "images": [{"url": "https://img.example.com/a1.jpg"}],
+                },
+            },
+            {
+                "id": "track_other_1",
+                "name": "Deep Cut",
+                "duration_ms": 180_000,
+                "artists": [{"id": "artist_123", "name": "Test Artist"}],
+                "album": {
+                    "id": "album_1",
+                    "name": "Album One",
+                    "album_type": "album",
+                    "release_date": "2022-05-01",
+                    "total_tracks": 2,
+                    "images": [{"url": "https://img.example.com/a1.jpg"}],
+                },
+            },
         ]
     )
 
@@ -202,8 +214,7 @@ async def test_declare_artist_imports_tracks(authed_client):
 async def test_declare_artist_appears_in_declared_list(authed_client):
     mock_fetcher = MagicMock()
     mock_fetcher.fetch_artist = AsyncMock(return_value=_mock_artist())
-    mock_fetcher.fetch_artist_top_tracks = AsyncMock(return_value=[])
-    mock_fetcher.fetch_artist_albums = AsyncMock(return_value=[])
+    mock_fetcher.fetch_artist_tracks_via_search = AsyncMock(return_value=[])
 
     mock_client_instance = AsyncMock()
     mock_client_instance.close = AsyncMock()
@@ -233,8 +244,7 @@ async def test_delete_declared_artist_not_found(authed_client):
 async def test_delete_declared_artist_removes_it(authed_client):
     mock_fetcher = MagicMock()
     mock_fetcher.fetch_artist = AsyncMock(return_value=_mock_artist())
-    mock_fetcher.fetch_artist_top_tracks = AsyncMock(return_value=[])
-    mock_fetcher.fetch_artist_albums = AsyncMock(return_value=[])
+    mock_fetcher.fetch_artist_tracks_via_search = AsyncMock(return_value=[])
 
     mock_client_instance = AsyncMock()
     mock_client_instance.close = AsyncMock()

@@ -30,13 +30,21 @@ class SpotifyClient:
         return {"Authorization": f"Bearer {self._access_token}"}
 
     async def get(self, path: str, **params: Any) -> dict[str, Any]:
+        # Only pass params dict when non-empty; passing params={} causes httpx to
+        # discard any query string already embedded in `path`.
         for attempt in range(_MAX_RETRIES + 1):
-            resp = await self._http.get(path, headers=self._auth_headers(), params=params)
+            if params:
+                resp = await self._http.get(path, headers=self._auth_headers(), params=params)
+            else:
+                resp = await self._http.get(path, headers=self._auth_headers())
 
             if resp.status_code == 401 and self._refresh_fn is not None:
                 new_token = await self._refresh_fn()
                 self._access_token = new_token
-                resp = await self._http.get(path, headers=self._auth_headers(), params=params)
+                if params:
+                    resp = await self._http.get(path, headers=self._auth_headers(), params=params)
+                else:
+                    resp = await self._http.get(path, headers=self._auth_headers())
                 resp.raise_for_status()
                 return resp.json()  # type: ignore[no-any-return]
 

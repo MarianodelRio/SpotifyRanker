@@ -203,13 +203,30 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     [getAccessToken],
   );
 
-  const togglePlay = useCallback(() => {
-    playerRef.current?.togglePlay().catch(console.error);
-  }, []);
+  const togglePlay = useCallback(async () => {
+    const id = deviceIdRef.current;
+    if (!id) return;
+    const token = await getAccessToken();
+    const sdkState = await playerRef.current?.getCurrentState().catch(() => null) ?? null;
+    const paused = sdkState ? sdkState.paused : !isPlaying;
+    const url = paused
+      ? `${SPOTIFY_API}/me/player/play?device_id=${id}`
+      : `${SPOTIFY_API}/me/player/pause`;
+    await fetch(url, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(console.error);
+  }, [getAccessToken, isPlaying]);
 
-  const skipToNext = useCallback(() => {
-    playerRef.current?.nextTrack().catch(console.error);
-  }, []);
+  const skipToNext = useCallback(async () => {
+    const id = deviceIdRef.current;
+    if (!id) return;
+    const token = await getAccessToken();
+    await fetch(`${SPOTIFY_API}/me/player/next?device_id=${id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(console.error);
+  }, [getAccessToken]);
 
   const getPositionMs = useCallback(() => positionMsRef.current, []);
 

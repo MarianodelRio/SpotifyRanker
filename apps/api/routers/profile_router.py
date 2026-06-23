@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.config import Settings, get_settings
+from db.engine import AsyncSessionLocal
 from db.models import Auth, DeclaredArtist, DeclaredPlaylist, UserTrackData
 from db.repositories import (
     AlbumRepository,
     ArtistRepository,
+    AuthRepository,
     DeclaredArtistRepository,
     DeclaredPlaylistRepository,
     GenreRepository,
@@ -20,13 +26,12 @@ from db.repositories import (
 )
 from db.session import get_db
 from libs.profile.builder import build_profile
+from libs.spotify.auth import refresh_access_token
 from libs.spotify.client import SpotifyClient
 from libs.spotify.fetcher import SpotifyFetcher
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
-# Popularity threshold: tracks with Spotify popularity > 50 are "popular" for declared-artist scoring.
-_POPULAR_THRESHOLD = 50
 _ARTIST_POPULAR_LABEL = 0.90
 _ARTIST_POPULAR_WEIGHT = 0.8
 _ARTIST_REST_LABEL = 0.60
@@ -43,12 +48,33 @@ class DeclarePlaylistRequest(BaseModel):
     spotify_id: str
 
 
-async def _get_access_token(db: AsyncSession) -> str:
+async def _get_spotify_client(db: AsyncSession, settings: Settings) -> SpotifyClient:
     result = await db.execute(select(Auth))
     auth = result.scalars().first()
     if auth is None or auth.access_token is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return auth.access_token
+
+    spotify_user_id = auth.spotify_user_id
+    refresh_token = auth.refresh_token
+    client_id = settings.SPOTIFY_CLIENT_ID
+
+    async def _refresh_fn() -> str:
+        if not refresh_token:
+            raise RuntimeError("No refresh token available")
+        data = await refresh_access_token(refresh_token, client_id)
+        new_token: str = data["access_token"]
+        new_refresh: str = data.get("refresh_token", refresh_token)
+        expires_in: int = data.get("expires_in", 3600)
+        async with AsyncSessionLocal() as s:
+            await AuthRepository(s).update_token(
+                spotify_user_id,
+                access_token=new_token,
+                refresh_token=new_refresh,
+                token_expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+            )
+        return new_token
+
+    return SpotifyClient(auth.access_token, refresh_fn=_refresh_fn)
 
 
 @router.get("")
@@ -86,14 +112,11 @@ async def declare_artist(
     session: AsyncSession = Depends(get_db),  # noqa: B008
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> dict[str, Any]:
-    access_token = await _get_access_token(session)
-    client = SpotifyClient(access_token)
+    client = await _get_spotify_client(session, settings)
     try:
         fetcher = SpotifyFetcher(client)
 
         artist = await fetcher.fetch_artist(body.spotify_id)
-        top_tracks = await fetcher.fetch_artist_top_tracks(body.spotify_id)
-        top_track_ids = {t.spotify_id for t in top_tracks}
 
         artist_repo = ArtistRepository(session)
         album_repo = AlbumRepository(session)
@@ -112,47 +135,50 @@ async def declare_artist(
         for genre_name in artist.genres:
             await genre_repo.get_or_create(genre_name)
 
-        # Fetch all albums and their tracks
-        albums = await fetcher.fetch_artist_albums(body.spotify_id)
+        # Fetch tracks via search (catalog endpoint /artists/{id}/albums is
+        # restricted in Spotify dev mode since Nov 2024).
+        raw_tracks = await fetcher.fetch_artist_tracks_via_search(body.spotify_id, artist.name)
         imported_count = 0
+        seen_album_ids: dict[str, str] = {}
 
-        for album_raw in albums:
+        for raw_track in raw_tracks:
+            album_raw = raw_track.get("album", {})
             album_spotify_id = album_raw.get("id", "")
-            if not album_spotify_id:
-                continue
 
-            images = album_raw.get("images", [])
-            image_url = images[0]["url"] if images else None
-            album_id = await album_repo.upsert(
-                spotify_id=album_spotify_id,
-                title=album_raw.get("name", ""),
-                artist_id=artist_id,
-                release_year=_extract_year(album_raw.get("release_date", "")),
-                total_tracks=album_raw.get("total_tracks"),
-                image_url=image_url,
+            if album_spotify_id and album_spotify_id not in seen_album_ids:
+                images = album_raw.get("images", [])
+                db_album_id = await album_repo.upsert(
+                    spotify_id=album_spotify_id,
+                    title=album_raw.get("name", ""),
+                    artist_id=artist_id,
+                    release_year=_extract_year(album_raw.get("release_date", "")),
+                    total_tracks=album_raw.get("total_tracks"),
+                    image_url=images[0]["url"] if images else None,
+                )
+                seen_album_ids[album_spotify_id] = db_album_id
+
+            track_artists = raw_track.get("artists", [])
+            track_id = await track_repo.upsert(
+                spotify_id=raw_track["id"],
+                title=raw_track["name"],
+                album_id=seen_album_ids.get(album_spotify_id),
+                duration_ms=raw_track.get("duration_ms", 0),
+                artist_name=track_artists[0]["name"] if track_artists else "",
+                album_title=album_raw.get("name", ""),
+                image_url=album_raw.get("images", [{}])[0].get("url"),
             )
 
-            tracks = await fetcher.fetch_album_tracks(album_spotify_id)
-            for track in tracks:
-                track_id = await track_repo.upsert(
-                    spotify_id=track.spotify_id,
-                    title=track.title,
-                    album_id=album_id,
-                    duration_ms=track.duration_ms,
-                    popularity=track.popularity,
-                )
+            is_main_album = album_raw.get("album_type") == "album"
+            label = _ARTIST_POPULAR_LABEL if is_main_album else _ARTIST_REST_LABEL
+            weight = _ARTIST_POPULAR_WEIGHT if is_main_album else _ARTIST_REST_WEIGHT
 
-                is_popular = track.spotify_id in top_track_ids
-                label = _ARTIST_POPULAR_LABEL if is_popular else _ARTIST_REST_LABEL
-                weight = _ARTIST_POPULAR_WEIGHT if is_popular else _ARTIST_REST_WEIGHT
-
-                await user_data_repo.upsert(
-                    track_id=track_id,
-                    declared_artist_label=label,
-                    declared_artist_weight=weight,
-                    declared_artist_spotify_id=body.spotify_id,
-                )
-                imported_count += 1
+            await user_data_repo.upsert(
+                track_id=track_id,
+                declared_artist_label=label,
+                declared_artist_weight=weight,
+                declared_artist_spotify_id=body.spotify_id,
+            )
+            imported_count += 1
 
         await declared_repo.upsert(
             spotify_id=artist.spotify_id,
@@ -166,6 +192,11 @@ async def declare_artist(
             "name": artist.name,
             "tracks_imported": imported_count,
         }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("declare_artist failed for %s", body.spotify_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         await client.close()
 
@@ -176,8 +207,7 @@ async def declare_playlist(
     session: AsyncSession = Depends(get_db),  # noqa: B008
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> dict[str, Any]:
-    access_token = await _get_access_token(session)
-    client = SpotifyClient(access_token)
+    client = await _get_spotify_client(session, settings)
     try:
         fetcher = SpotifyFetcher(client)
 
@@ -212,6 +242,10 @@ async def declare_playlist(
             "name": info["name"],
             "tracks_imported": len(tracks),
         }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         await client.close()
 
