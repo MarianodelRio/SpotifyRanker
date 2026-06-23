@@ -3,9 +3,9 @@ id: T-034
 phase: 4
 agent: ML/Ranking
 depends_on: [T-028, T-025]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-034-evaluation-metrics
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/36"
 ---
 
 ### T-034 — Evaluation metrics
@@ -31,3 +31,5 @@ Add lightweight metrics to evaluate recommendation quality over time.
 - `loss_history` is persisted in `training_state.json` (appended after each train run, capped at 20 entries).
 - `like_rate` and `diversity_score` return `None` on empty DB (not 0.0), which serializes to JSON `null` — satisfies the acceptance criteria.
 - Pre-existing mypy error in `libs/candidates/sources/artist_discography.py` (unrelated to this task) was present before and after.
+- PR Reviewer: `test_diversity_score_uses_last_5_playlists` may be order-sensitive if multiple playlists share the same `created_at` (SQLite in-memory). Currently passing; flag for attention if it becomes flaky.
+- PR Reviewer: rebase dropped the empty claim commit cleanly; branch rebased onto master with no design conflicts.
