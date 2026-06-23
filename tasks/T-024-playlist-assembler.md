@@ -3,8 +3,8 @@ id: T-024
 phase: 2
 agent: Domain Core
 depends_on: [T-022, T-023, T-007]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-024-playlist-assembler
 pr: ""
 ---
 
@@ -24,4 +24,8 @@ Build the playlist assembly and export module — the last step of the recommend
 - Export is idempotent: re-exporting the same playlist creates a new Spotify playlist rather than failing.
 
 **Notes**
-_Orchestrator fills after completion._
+- `libs/spotify/client.py` received a new `post()` method (mirrors `get()` with same auth/retry logic). Justified cross-boundary touch — necessary for Spotify write operations.
+- `libs/spotify/fetcher.py` received three write methods: `get_current_user_id()`, `create_playlist()`, `add_tracks_to_playlist()` (batches in groups of 100).
+- Assembler uses the SQLAlchemy session directly (no repository layer) to write `Playlist` + `PlaylistTrack` rows.
+- Exporter is idempotent: always creates a new Spotify playlist rather than checking for an existing one.
+- 15 new unit tests; full suite 325 passed.
