@@ -3,9 +3,9 @@ id: T-032
 phase: 4
 agent: ML/Ranking
 depends_on: [T-021, T-006]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-032-embedding-cache
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/31"
 ---
 
 ### T-032 — Item embedding cache
@@ -30,3 +30,4 @@ Pre-compute and cache item embeddings for all known tracks in the database, so s
 - `_build_embedding_cache` does a single batched forward pass through ItemTower for all tracks, then saves with `np.savez`. 10K tracks complete in ~1–2s on CPU.
 - `rank()` loads the cache once per call; cache-hit uses the stored array directly, cache-miss computes on-the-fly.
 - Existing trainer unit tests updated to mock `_build_embedding_cache` (avoids AsyncMock cascading issue from the real DB call).
+- PR Reviewer: lint fix (removed unused `pytest` import from test file); rebased cleanly onto master dropping the claim metadata commit. `_build_embedding_cache` is mocked in unit tests — full cache rebuild path is not directly covered; would benefit from an integration test in a future task.
