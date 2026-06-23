@@ -3,9 +3,9 @@ id: T-030
 phase: 3
 agent: Frontend
 depends_on: [T-029, T-028, T-015]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-030-onboarding-frontend
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/32"
 ---
 
 ### T-030 — Onboarding + profile frontend
@@ -35,3 +35,4 @@ Build the profile/onboarding UI and wire model status into the interface.
 - Declare playlist flow uses URL/ID input (no search endpoint for playlists in the backend).
 - useModelStatus hook shared between Header and Profile; both poll independently.
 - Profile auto-refreshes genre weights when training completes.
+- PR Reviewer: rebase skipped the coordination claim commit (mechanical conflict in task file only, no production code). formatAgo duplicated in Header.tsx and Profile/index.tsx — minor, not a bug. No frontend test suite in project.
