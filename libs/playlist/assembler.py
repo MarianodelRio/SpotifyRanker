@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Playlist, PlaylistTrack
+from db.repositories.track import TrackRepository
 from libs.common.enums import PlaylistMode
 from libs.common.models import GeneratedPlaylist, RankedTrack
 
@@ -32,13 +33,17 @@ async def assemble(
     )
     session.add(db_playlist)
 
-    for rank, ranked in enumerate(selected, start=1):
+    track_repo = TrackRepository(session)
+    for position, ranked in enumerate(selected, start=1):
+        db_track = await track_repo.get_by_spotify_id(ranked.candidate.track.spotify_id)
+        if db_track is None:
+            continue
         session.add(
             PlaylistTrack(
                 id=str(uuid.uuid4()),
                 playlist_id=playlist_id,
-                track_id=ranked.candidate.track.spotify_id,
-                rank=rank,
+                track_id=db_track.id,
+                rank=position,
                 final_score=ranked.final_score,
                 score_breakdown=ranked.score_breakdown,
             )
