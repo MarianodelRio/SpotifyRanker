@@ -100,6 +100,31 @@ class SpotifyClient:
                 yield items
             url = page.get("next")
 
+    async def post(self, path: str, json: dict[str, Any] | None = None) -> dict[str, Any]:
+        for attempt in range(_MAX_RETRIES + 1):
+            resp = await self._http.post(path, headers=self._auth_headers(), json=json or {})
+
+            if resp.status_code == 401 and self._refresh_fn is not None:
+                new_token = await self._refresh_fn()
+                self._access_token = new_token
+                resp = await self._http.post(path, headers=self._auth_headers(), json=json or {})
+                resp.raise_for_status()
+                return resp.json() if resp.content else {}
+
+            if resp.status_code == 429:
+                if attempt == _MAX_RETRIES:
+                    resp.raise_for_status()
+                retry_after = int(resp.headers.get("Retry-After", 1))
+                backoff = min(retry_after * (2**attempt), 30)
+                await asyncio.sleep(backoff)
+                continue
+
+            resp.raise_for_status()
+            return resp.json() if resp.content else {}
+
+        resp.raise_for_status()
+        return {}  # unreachable but satisfies mypy
+
     async def get_paginated(self, path: str, **params: Any) -> list[dict[str, Any]]:
         """Fetch all pages of a cursor-based paginated Spotify endpoint."""
         items: list[dict[str, Any]] = []
