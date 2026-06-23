@@ -167,10 +167,13 @@ def _make_generated_playlist() -> GeneratedPlaylist:
 
 
 async def test_generate_unauthenticated(client):
-    with patch("apps.api.routers.playlist_router.load_model"), patch(
-        "apps.api.routers.playlist_router.build_profile",
-        new_callable=AsyncMock,
-        return_value=UserProfile(),
+    with (
+        patch("apps.api.routers.playlist_router.load_model"),
+        patch(
+            "apps.api.routers.playlist_router.build_profile",
+            new_callable=AsyncMock,
+            return_value=UserProfile(),
+        ),
     ):
         resp = await client.post("/playlist/generate", json={"mode": "balanced", "size": 5})
     assert resp.status_code == 401
@@ -196,27 +199,32 @@ async def test_generate_success(client, test_engine):
 
     generated = _make_generated_playlist()
 
-    with patch("apps.api.routers.playlist_router.load_model", return_value=MagicMock()), patch(
-        "apps.api.routers.playlist_router.build_profile",
-        new_callable=AsyncMock,
-        return_value=UserProfile(),
+    with (
+        patch("apps.api.routers.playlist_router.load_model", return_value=MagicMock()),
+        patch(
+            "apps.api.routers.playlist_router.build_profile",
+            new_callable=AsyncMock,
+            return_value=UserProfile(),
+        ),
     ):
         mock_gen_instance = MagicMock()
         mock_gen_instance.generate = AsyncMock(return_value=[_make_ranked_track().candidate])
-        with patch(
-            "apps.api.routers.playlist_router.CandidateGenerator",
-            return_value=mock_gen_instance,
-        ), patch(
-            "apps.api.routers.playlist_router.rank",
-            return_value=[_make_ranked_track()],
-        ), patch(
-            "apps.api.routers.playlist_router.assemble",
-            new_callable=AsyncMock,
-            return_value=generated,
+        with (
+            patch(
+                "apps.api.routers.playlist_router.CandidateGenerator",
+                return_value=mock_gen_instance,
+            ),
+            patch(
+                "apps.api.routers.playlist_router.rank",
+                return_value=[_make_ranked_track()],
+            ),
+            patch(
+                "apps.api.routers.playlist_router.assemble",
+                new_callable=AsyncMock,
+                return_value=generated,
+            ),
         ):
-            resp = await client.post(
-                "/playlist/generate", json={"mode": "balanced", "size": 5}
-            )
+            resp = await client.post("/playlist/generate", json={"mode": "balanced", "size": 5})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -228,10 +236,13 @@ async def test_generate_success(client, test_engine):
 async def test_generate_no_candidates(client, test_engine):
     await _seed_auth(test_engine)
 
-    with patch("apps.api.routers.playlist_router.load_model", return_value=MagicMock()), patch(
-        "apps.api.routers.playlist_router.build_profile",
-        new_callable=AsyncMock,
-        return_value=UserProfile(),
+    with (
+        patch("apps.api.routers.playlist_router.load_model", return_value=MagicMock()),
+        patch(
+            "apps.api.routers.playlist_router.build_profile",
+            new_callable=AsyncMock,
+            return_value=UserProfile(),
+        ),
     ):
         mock_gen_instance = MagicMock()
         mock_gen_instance.generate = AsyncMock(return_value=[])
@@ -239,9 +250,7 @@ async def test_generate_no_candidates(client, test_engine):
             "apps.api.routers.playlist_router.CandidateGenerator",
             return_value=mock_gen_instance,
         ):
-            resp = await client.post(
-                "/playlist/generate", json={"mode": "balanced", "size": 5}
-            )
+            resp = await client.post("/playlist/generate", json={"mode": "balanced", "size": 5})
 
     assert resp.status_code == 422
     assert "No candidates" in resp.json()["detail"]
@@ -257,8 +266,12 @@ async def test_history_empty(client):
 
 
 async def test_history_returns_playlists(client, test_engine):
-    await _seed_playlist_with_track(test_engine, playlist_id="pl-001", track_spotify_id="spotify_track_abc")
-    await _seed_playlist_with_track(test_engine, playlist_id="pl-002", track_spotify_id="spotify_track_def")
+    await _seed_playlist_with_track(
+        test_engine, playlist_id="pl-001", track_spotify_id="spotify_track_abc"
+    )
+    await _seed_playlist_with_track(
+        test_engine, playlist_id="pl-002", track_spotify_id="spotify_track_def"
+    )
 
     resp = await client.get("/playlist/history")
     assert resp.status_code == 200
