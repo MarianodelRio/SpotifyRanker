@@ -3,9 +3,9 @@ id: T-033
 phase: 4
 agent: Backend/API
 depends_on: [T-030]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-033-edge-case-hardening
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/33"
 ---
 
 ### T-033 — Edge case hardening
@@ -32,3 +32,4 @@ Harden the system against the most likely failure modes in a personal-use produc
 - Created `apps/api/routers/playlist_router.py` stub with model-not-trained (400) and empty-library (400) guards. Full pipeline deferred to T-025.
 - Token refresh mid-import and 429 backoff were already implemented — no changes needed, only verified and documented.
 - Pre-existing mypy error in `libs/candidates/sources/artist_discography.py` (fetch_artist_albums attribute) is outside this agent's scope — not fixed.
+- PR Reviewer: all 343 tests pass, ruff clean, mypy clean on in-scope files. Pre-existing mypy error in `libs/candidates/` noted in PR body. Frontend `partial` status display not wired (no UI handling for the new value yet — expected, T-026 scope).
