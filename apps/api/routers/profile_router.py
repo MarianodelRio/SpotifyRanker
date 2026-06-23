@@ -5,8 +5,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-
-logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +27,8 @@ from libs.profile.builder import build_profile
 from libs.spotify.auth import refresh_access_token
 from libs.spotify.client import SpotifyClient
 from libs.spotify.fetcher import SpotifyFetcher
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -24,6 +25,8 @@ from libs.spotify.auth import refresh_access_token
 from libs.spotify.client import SpotifyClient
 from libs.spotify.fetcher import SpotifyFetcher
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/import", tags=["import"])
 
 
@@ -34,8 +37,7 @@ async def _run_import(
     client_id: str,
 ) -> None:
     async with AsyncSessionLocal() as session:
-        auth_repo = AuthRepository(session)
-        await auth_repo.update_import_status(
+        await AuthRepository(session).update_import_status(
             spotify_user_id,
             ImportStatus.running,
             started_at=datetime.utcnow(),
@@ -61,36 +63,50 @@ async def _run_import(
         access_token,
         refresh_fn=refresh_fn if refresh_token else None,
     )
+
+    artists_ok = True
+    tracks_ok = False
+
     try:
         fetcher = SpotifyFetcher(client)
+
+        # ── Phase 1: top artists (non-fatal — Spotify 5xx leaves tracks usable) ──
+        try:
+            async with AsyncSessionLocal() as session:
+                artist_repo = ArtistRepository(session)
+                genre_repo = GenreRepository(session)
+
+                for time_range in ("short_term", "medium_term", "long_term"):
+                    artists = await fetcher.fetch_top_artists(time_range)
+                    for artist in artists:
+                        artist_id = await artist_repo.upsert(
+                            spotify_id=artist.spotify_id,
+                            name=artist.name,
+                            popularity=artist.popularity,
+                            image_url=artist.image_url,
+                        )
+                        for genre_name in artist.genres:
+                            genre = await genre_repo.get_or_create(genre_name)
+                            stmt = (
+                                insert(ArtistGenre)
+                                .values(artist_id=artist_id, genre_id=genre.id)
+                                .on_conflict_do_nothing()
+                            )
+                            await session.execute(stmt)
+                        await session.commit()
+        except Exception:
+            artists_ok = False
+            logger.exception(
+                "Artist fetch failed during import for user %s — continuing with saved tracks.",
+                spotify_user_id,
+            )
+
+        # ── Phase 2: saved tracks ────────────────────────────────────────────
+        now = datetime.utcnow()
         async with AsyncSessionLocal() as session:
             track_repo = TrackRepository(session)
             user_data_repo = UserTrackDataRepository(session)
-            artist_repo = ArtistRepository(session)
-            genre_repo = GenreRepository(session)
 
-            # Fetch and upsert artists with genres
-            for time_range in ("short_term", "medium_term", "long_term"):
-                artists = await fetcher.fetch_top_artists(time_range)
-                for artist in artists:
-                    artist_id = await artist_repo.upsert(
-                        spotify_id=artist.spotify_id,
-                        name=artist.name,
-                        popularity=artist.popularity,
-                        image_url=artist.image_url,
-                    )
-                    for genre_name in artist.genres:
-                        genre = await genre_repo.get_or_create(genre_name)
-                        stmt = (
-                            insert(ArtistGenre)
-                            .values(artist_id=artist_id, genre_id=genre.id)
-                            .on_conflict_do_nothing()
-                        )
-                        await session.execute(stmt)
-                    await session.commit()
-
-            # Stream saved tracks page-by-page so progress is visible immediately
-            now = datetime.utcnow()
             async for batch in fetcher.fetch_saved_tracks_paged():
                 for track in batch:
                     track_id = await track_repo.upsert(
@@ -109,7 +125,11 @@ async def _run_import(
                         saved_at=now,
                     )
 
-            # Stream top tracks page-by-page for each time range
+        # ── Phase 3: top tracks per time range ───────────────────────────────
+        async with AsyncSessionLocal() as session:
+            track_repo = TrackRepository(session)
+            user_data_repo = UserTrackDataRepository(session)
+
             for time_range in ("short_term", "medium_term", "long_term"):
                 async for batch in fetcher.fetch_top_tracks_paged(time_range):
                     for position, track in enumerate(batch, start=1):
@@ -135,20 +155,26 @@ async def _run_import(
                                 track_id=track_id, top_position_long=position
                             )
 
-        async with AsyncSessionLocal() as session:
-            auth_repo = AuthRepository(session)
-            await auth_repo.update_import_status(
-                spotify_user_id,
-                ImportStatus.completed,
-                completed_at=datetime.utcnow(),
-            )
+        tracks_ok = True
 
     except Exception:
-        async with AsyncSessionLocal() as session:
-            await AuthRepository(session).update_import_status(spotify_user_id, ImportStatus.failed)
-        raise
+        logger.exception("Import failed for user %s.", spotify_user_id)
     finally:
         await client.close()
+
+    # ── Resolve final status ─────────────────────────────────────────────────
+    if tracks_ok and not artists_ok:
+        final_status = ImportStatus.partial
+    elif tracks_ok:
+        final_status = ImportStatus.completed
+    else:
+        final_status = ImportStatus.failed
+
+    async with AsyncSessionLocal() as session:
+        extra: dict[str, Any] = {}
+        if final_status in (ImportStatus.completed, ImportStatus.partial):
+            extra["completed_at"] = datetime.utcnow()
+        await AuthRepository(session).update_import_status(spotify_user_id, final_status, **extra)
 
 
 @router.post("/start")

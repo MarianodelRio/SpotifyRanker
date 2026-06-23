@@ -16,6 +16,7 @@ class ImportStatus(str, Enum):
     idle = "idle"
     running = "running"
     completed = "completed"
+    partial = "partial"
     failed = "failed"
 
 

@@ -4,7 +4,7 @@ export type PlaylistMode = "safe" | "balanced" | "adventurous";
 
 export type FeedbackType = "like" | "dislike";
 
-export type ImportStatus = "idle" | "running" | "completed" | "failed";
+export type ImportStatus = "idle" | "running" | "completed" | "partial" | "failed";
 
 export type CandidateSource = "artist_discography" | "genre_search";
 
