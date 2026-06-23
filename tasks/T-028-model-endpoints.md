@@ -3,7 +3,7 @@ id: T-028
 phase: 3
 agent: Backend/API
 depends_on: [T-027]
-status: PR_OPEN
+status: DONE
 branch: feature/T-028-model-endpoints
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/28"
 ---
