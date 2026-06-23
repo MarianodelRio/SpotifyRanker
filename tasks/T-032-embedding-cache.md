@@ -3,7 +3,7 @@ id: T-032
 phase: 4
 agent: ML/Ranking
 depends_on: [T-021, T-006]
-status: PR_OPEN
+status: DONE
 branch: feature/T-032-embedding-cache
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/31"
 ---
