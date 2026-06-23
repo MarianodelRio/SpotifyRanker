@@ -3,8 +3,8 @@ id: T-034
 phase: 4
 agent: ML/Ranking
 depends_on: [T-028, T-025]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-034-evaluation-metrics
 pr: ""
 ---
 
@@ -26,4 +26,8 @@ Add lightweight metrics to evaluate recommendation quality over time.
 - All metrics compute without errors on an empty history (return null or 0.0, not exceptions).
 
 **Notes**
-_Orchestrator fills after completion._
+- `libs/ml/metrics.py` is a new file with three functions: `compute_like_rate`, `compute_diversity_score`, `append_loss_history`.
+- `apps/api/routers/model_router.py` is out-of-agent-folder; touched to extend the `ModelStatus` response model and wire up the DB session dependency on `GET /model/status`. Justification: task scope explicitly requires adding metrics to this endpoint.
+- `loss_history` is persisted in `training_state.json` (appended after each train run, capped at 20 entries).
+- `like_rate` and `diversity_score` return `None` on empty DB (not 0.0), which serializes to JSON `null` — satisfies the acceptance criteria.
+- Pre-existing mypy error in `libs/candidates/sources/artist_discography.py` (unrelated to this task) was present before and after.
