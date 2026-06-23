@@ -1,9 +1,13 @@
 """Unit tests for libs/playlist/assembler.py."""
 
+import uuid
+from datetime import datetime
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db.models import Base, Playlist, PlaylistTrack
+from db.models import Track as DBTrack
 from libs.common.enums import CandidateSource, PlaylistMode
 from libs.common.models import Candidate, RankedTrack, Track
 from libs.playlist.assembler import assemble
@@ -30,6 +34,24 @@ def _ranked(spotify_id: str, score: float = 0.9) -> RankedTrack:
         final_score=score,
         score_breakdown={"two_tower": score},
     )
+
+
+async def _seed_db_track(session: AsyncSession, spotify_id: str) -> DBTrack:
+    now = datetime.utcnow()
+    db_track = DBTrack(
+        id=str(uuid.uuid4()),
+        spotify_id=spotify_id,
+        title="Song",
+        artist_name="Artist",
+        album_title="Album",
+        duration_ms=180_000,
+        popularity=60,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(db_track)
+    await session.flush()
+    return db_track
 
 
 @pytest.fixture
@@ -76,6 +98,8 @@ async def test_assemble_persists_playlist_row(session):
 
 
 async def test_assemble_persists_playlist_track_rows(session):
+    await _seed_db_track(session, "tx")
+    await _seed_db_track(session, "ty")
     ranked = [_ranked("tx"), _ranked("ty")]
     playlist = await assemble(ranked, PlaylistMode.balanced, 2, session)
 
@@ -91,6 +115,7 @@ async def test_assemble_persists_playlist_track_rows(session):
 
 
 async def test_assemble_stores_score_in_track_rows(session):
+    await _seed_db_track(session, "ts")
     ranked = [_ranked("ts", score=0.75)]
     playlist = await assemble(ranked, PlaylistMode.balanced, 1, session)
 
