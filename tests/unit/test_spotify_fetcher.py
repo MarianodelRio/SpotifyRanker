@@ -124,16 +124,28 @@ async def test_fetch_artist_tracks_via_search_filters_by_artist_id():
         "name": "Hit Song",
         "duration_ms": 200_000,
         "artists": [{"id": artist_id, "name": "Artist X"}],
-        "album": {"id": "alb1", "name": "Album One", "album_type": "album",
-                  "release_date": "2022-01-01", "total_tracks": 10, "images": []},
+        "album": {
+            "id": "alb1",
+            "name": "Album One",
+            "album_type": "album",
+            "release_date": "2022-01-01",
+            "total_tracks": 10,
+            "images": [],
+        },
     }
     other_artist = {
         "id": "t2",
         "name": "Other Song",
         "duration_ms": 180_000,
         "artists": [{"id": "other_artist", "name": "Other Artist"}],
-        "album": {"id": "alb2", "name": "Other Album", "album_type": "single",
-                  "release_date": "2023-01-01", "total_tracks": 1, "images": []},
+        "album": {
+            "id": "alb2",
+            "name": "Other Album",
+            "album_type": "single",
+            "release_date": "2023-01-01",
+            "total_tracks": 1,
+            "images": [],
+        },
     }
     client = _make_client(paginated_return=[matching, other_artist])
     fetcher = SpotifyFetcher(client)
@@ -151,8 +163,14 @@ async def test_fetch_artist_tracks_via_search_deduplicates():
         "name": "Hit Song",
         "duration_ms": 200_000,
         "artists": [{"id": artist_id, "name": "Artist X"}],
-        "album": {"id": "alb1", "name": "Album One", "album_type": "album",
-                  "release_date": "2022-01-01", "total_tracks": 10, "images": []},
+        "album": {
+            "id": "alb1",
+            "name": "Album One",
+            "album_type": "album",
+            "release_date": "2022-01-01",
+            "total_tracks": 10,
+            "images": [],
+        },
     }
     client = _make_client(paginated_return=[track, track])  # same track twice
     fetcher = SpotifyFetcher(client)
