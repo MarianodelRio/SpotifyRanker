@@ -3,7 +3,7 @@ id: T-033
 phase: 4
 agent: Backend/API
 depends_on: [T-030]
-status: PR_OPEN
+status: DONE
 branch: feature/T-033-edge-case-hardening
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/33"
 ---
