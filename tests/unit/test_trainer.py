@@ -175,6 +175,7 @@ class TestModelFilesSaved:
         with (
             patch("libs.ml.trainer.build_training_set", new=AsyncMock(return_value=examples)),
             patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+            patch("libs.ml.trainer._build_embedding_cache", new=AsyncMock(return_value=None)),
             patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
             patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
             patch("libs.ml.trainer.save_vocab"),
@@ -253,6 +254,7 @@ class TestHardNegativeMining:
         with (
             patch("libs.ml.trainer.build_training_set", new=AsyncMock(return_value=examples)),
             patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+            patch("libs.ml.trainer._build_embedding_cache", new=AsyncMock(return_value=None)),
             patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
             patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
             patch("libs.ml.trainer.save_vocab"),
@@ -327,6 +329,7 @@ class TestHardNegativeMining:
                     new=AsyncMock(return_value=examples),
                 ),
                 patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+                patch("libs.ml.trainer._build_embedding_cache", new=AsyncMock(return_value=None)),
                 patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
                 patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
                 patch("libs.ml.trainer.save_vocab"),
@@ -363,6 +366,7 @@ class TestHardNegativeMining:
         with (
             patch("libs.ml.trainer.build_training_set", new=AsyncMock(return_value=examples)),
             patch("libs.ml.trainer._load_track_metadata", new=AsyncMock(return_value={})),
+            patch("libs.ml.trainer._build_embedding_cache", new=AsyncMock(return_value=None)),
             patch("libs.ml.trainer._MODELS_STORE", new=tmp_path),
             patch("libs.ml.trainer.build_genre_vocab", return_value=[]),
             patch("libs.ml.trainer.save_vocab"),

@@ -6,6 +6,7 @@ from libs.ml.inference import (
     compute_item_embedding,
     compute_user_embedding,
     get_vocab,
+    load_embedding_cache,
     score_candidates,
 )
 from libs.ml.trainer import TowerPair
@@ -42,14 +43,19 @@ def rank(
     vocab = get_vocab()
 
     user_emb = compute_user_embedding(profile, towers, vocab)
+    cache = load_embedding_cache()
 
     item_embs = []
     for candidate in candidates:
         track = candidate.track
-        genres = genres_map.get(track.spotify_id, []) if genres_map else []
-        artist_pop = artist_popularity_map.get(track.artist_name, 0) if artist_popularity_map else 0
-        emb = compute_item_embedding(track, towers, genres, artist_pop, vocab)
-        item_embs.append(emb)
+        if track.spotify_id in cache:
+            item_embs.append(cache[track.spotify_id])
+        else:
+            genres = genres_map.get(track.spotify_id, []) if genres_map else []
+            artist_pop = (
+                artist_popularity_map.get(track.artist_name, 0) if artist_popularity_map else 0
+            )
+            item_embs.append(compute_item_embedding(track, towers, genres, artist_pop, vocab))
 
     base_scores = score_candidates(user_emb, item_embs)
 
