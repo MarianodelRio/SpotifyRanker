@@ -3,7 +3,7 @@ id: T-021
 phase: 2
 agent: ML/Ranking
 depends_on: [T-020]
-status: PR_OPEN
+status: DONE
 branch: feature/T-021-inference-engine
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/25"
 ---
