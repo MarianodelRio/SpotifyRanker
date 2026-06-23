@@ -3,9 +3,9 @@ id: T-025
 phase: 2
 agent: Backend/API
 depends_on: [T-024, T-008]
-status: READY_FOR_PR
+status: PR_OPEN
 branch: feature/T-025-playlist-endpoints
-pr: ""
+pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/34"
 ---
 
 ### T-025 — Playlist endpoints
@@ -30,4 +30,7 @@ Expose the full playlist generation and history API.
 - `assembler.py` had a bug: `track_id` FK was being set to `spotify_id` (string) instead of the DB UUID. Fixed via `TrackRepository.get_by_spotify_id` lookup; `PlaylistTrack` rows are skipped if the track isn't in the DB yet.
 - `PlaylistRepository` gained two new methods: `get_by_id_with_tracks` (eager-loads `tracks → track`) and `update_export`.
 - `main.py` and `profile_router.py` restored from master HEAD to bring in E402/logger fixes from `395e8ae` that post-dated the branch creation.
-- 11 integration tests + 2 updated assembler unit tests. 347 total tests pass, ruff clean, mypy clean for T-025 files (1 pre-existing error in `artist_discography.py` unrelated).
+- 11 integration tests + 2 updated assembler unit tests. 350 total tests pass, ruff clean, mypy clean for T-025 files (1 pre-existing error in `artist_discography.py` unrelated).
+- PR Reviewer: `db/repositories/playlist.py` and `libs/playlist/assembler.py` are out of scope for the Backend/API agent but were required to fix a critical bug (track_id FK). Flagged for human awareness.
+- PR Reviewer: `update_export` calls `session.commit()` internally — inconsistent with other repository methods that leave commit to the caller. Low risk in practice given single-user context.
+- PR Reviewer: rebase resolved add/add conflict on `playlist_router.py` using T-025 implementation over master stub (422 codes, full pipeline). Human confirmed this approach.
