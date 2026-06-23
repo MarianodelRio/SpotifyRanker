@@ -3,7 +3,7 @@ id: T-022
 phase: 2
 agent: ML/Ranking
 depends_on: [T-021, T-010]
-status: PR_OPEN
+status: DONE
 branch: feature/T-022-ranker-modes-diversifier
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/29"
 ---
