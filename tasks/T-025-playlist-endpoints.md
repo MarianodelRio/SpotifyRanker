@@ -3,8 +3,8 @@ id: T-025
 phase: 2
 agent: Backend/API
 depends_on: [T-024, T-008]
-status: TODO
-branch: ""
+status: READY_FOR_PR
+branch: feature/T-025-playlist-endpoints
 pr: ""
 ---
 
@@ -26,4 +26,8 @@ Expose the full playlist generation and history API.
 - Generating when no model is trained returns a clear error (not a 500).
 
 **Notes**
-_Orchestrator fills after completion._
+- Router file is `apps/api/routers/playlist_router.py` (not `playlist.py` as scope said — naming follows project convention).
+- `assembler.py` had a bug: `track_id` FK was being set to `spotify_id` (string) instead of the DB UUID. Fixed via `TrackRepository.get_by_spotify_id` lookup; `PlaylistTrack` rows are skipped if the track isn't in the DB yet.
+- `PlaylistRepository` gained two new methods: `get_by_id_with_tracks` (eager-loads `tracks → track`) and `update_export`.
+- `main.py` and `profile_router.py` restored from master HEAD to bring in E402/logger fixes from `395e8ae` that post-dated the branch creation.
+- 11 integration tests + 2 updated assembler unit tests. 347 total tests pass, ruff clean, mypy clean for T-025 files (1 pre-existing error in `artist_discography.py` unrelated).
