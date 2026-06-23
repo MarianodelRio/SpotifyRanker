@@ -3,7 +3,7 @@ id: T-024
 phase: 2
 agent: Domain Core
 depends_on: [T-022, T-023, T-007]
-status: PR_OPEN
+status: DONE
 branch: feature/T-024-playlist-assembler
 pr: "https://github.com/MarianodelRio/SpotifyRanker/pull/30"
 ---
