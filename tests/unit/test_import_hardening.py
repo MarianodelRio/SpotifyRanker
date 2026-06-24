@@ -45,8 +45,8 @@ async def test_run_import_partial_when_artist_fetch_fails() -> None:
         return
         yield  # pragma: no cover
 
-    fetcher.fetch_saved_tracks_paged = MagicMock(return_value=_empty_paged())
-    fetcher.fetch_top_tracks_paged = MagicMock(return_value=_empty_paged())
+    fetcher.fetch_saved_tracks_with_artists_paged = MagicMock(return_value=_empty_paged())
+    fetcher.fetch_top_tracks_with_artists_paged = MagicMock(return_value=_empty_paged())
 
     client = AsyncMock()
     client.close = AsyncMock()
@@ -83,7 +83,7 @@ async def test_run_import_failed_when_tracks_also_fail() -> None:
 
     fetcher = AsyncMock()
     fetcher.fetch_top_artists = AsyncMock(side_effect=RuntimeError("500"))
-    fetcher.fetch_saved_tracks_paged = MagicMock(side_effect=RuntimeError("also failed"))
+    fetcher.fetch_saved_tracks_with_artists_paged = MagicMock(side_effect=RuntimeError("also failed"))
 
     client = AsyncMock()
     client.close = AsyncMock()
@@ -125,8 +125,8 @@ async def test_run_import_completed_when_all_phases_succeed() -> None:
         return
         yield  # pragma: no cover
 
-    fetcher.fetch_saved_tracks_paged = MagicMock(return_value=_empty_paged())
-    fetcher.fetch_top_tracks_paged = MagicMock(return_value=_empty_paged())
+    fetcher.fetch_saved_tracks_with_artists_paged = MagicMock(return_value=_empty_paged())
+    fetcher.fetch_top_tracks_with_artists_paged = MagicMock(return_value=_empty_paged())
 
     client = AsyncMock()
     client.close = AsyncMock()

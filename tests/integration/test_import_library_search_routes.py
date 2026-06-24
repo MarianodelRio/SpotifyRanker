@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from apps.api.config import Settings, get_settings
 from apps.api.main import app
-from db.models import Auth, Base, Track, UserTrackData
+from apps.api.routers.import_router import _run_import
+from db.models import Auth, Base, Track, TrackArtist, UserTrackData
 from db.session import get_db
 from libs.common.enums import ImportStatus
 from libs.common.models import Artist as ArtistModel
 from libs.common.models import Track as TrackModel
+from libs.spotify.fetcher import ParsedTrackWithArtists
 
 # ── Test DB fixture ───────────────────────────────────────────────────────────
 
@@ -385,3 +388,135 @@ async def test_search_does_not_write_to_db(client, test_engine):
         result = await session.execute(select(func.count()).select_from(Track))
         count = result.scalar_one()
     assert count == 0
+
+
+# ── _run_import: track_artists linking ───────────────────────────────────────
+
+
+@pytest.fixture
+async def import_engine():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    await engine.dispose()
+
+
+async def test_run_import_creates_track_artist_links(import_engine):
+    factory = async_sessionmaker(import_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with factory() as s:
+        s.add(
+            Auth(
+                spotify_user_id="uid1",
+                display_name="Alice",
+                access_token="tok",
+                refresh_token=None,
+                import_status=ImportStatus.idle,
+            )
+        )
+        await s.commit()
+
+    saved_track = ParsedTrackWithArtists(
+        track=TrackModel(
+            spotify_id="sp_t1",
+            title="Saved Song",
+            artist_name="Artist A",
+            album_title="Album A",
+            duration_ms=180_000,
+            popularity=70,
+        ),
+        artist_spotify_ids=["sp_a1"],
+        artist_names=["Artist A"],
+    )
+
+    async def mock_saved_paged(**_kwargs):
+        yield [saved_track]
+
+    async def mock_top_paged(time_range, **_kwargs):
+        yield []
+
+    mock_fetcher = MagicMock()
+    mock_fetcher.fetch_top_artists = AsyncMock(return_value=[])
+    mock_fetcher.fetch_saved_tracks_with_artists_paged = mock_saved_paged
+    mock_fetcher.fetch_top_tracks_with_artists_paged = mock_top_paged
+    mock_fetcher.close = AsyncMock()
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("apps.api.routers.import_router.AsyncSessionLocal", factory),
+        patch("apps.api.routers.import_router.SpotifyClient", return_value=mock_client),
+        patch("apps.api.routers.import_router.SpotifyFetcher", return_value=mock_fetcher),
+    ):
+        await _run_import("uid1", "tok", None, "client_id")
+
+    async with factory() as s:
+        links = (await s.execute(select(TrackArtist))).scalars().all()
+
+    assert len(links) == 1
+    assert links[0].is_primary is True
+
+
+async def test_run_import_creates_track_artist_links_for_top_tracks(import_engine):
+    factory = async_sessionmaker(import_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with factory() as s:
+        s.add(
+            Auth(
+                spotify_user_id="uid1",
+                display_name="Alice",
+                access_token="tok",
+                refresh_token=None,
+                import_status=ImportStatus.idle,
+            )
+        )
+        await s.commit()
+
+    top_track = ParsedTrackWithArtists(
+        track=TrackModel(
+            spotify_id="sp_t2",
+            title="Top Hit",
+            artist_name="Artist B",
+            album_title="",
+            duration_ms=200_000,
+            popularity=85,
+        ),
+        artist_spotify_ids=["sp_a2", "sp_a3"],
+        artist_names=["Artist B", "Feat C"],
+    )
+
+    async def mock_saved_paged(**_kwargs):
+        yield []
+
+    async def mock_top_paged(time_range, **_kwargs):
+        if time_range == "short_term":
+            yield [top_track]
+        else:
+            yield []
+
+    mock_fetcher = MagicMock()
+    mock_fetcher.fetch_top_artists = AsyncMock(return_value=[])
+    mock_fetcher.fetch_saved_tracks_with_artists_paged = mock_saved_paged
+    mock_fetcher.fetch_top_tracks_with_artists_paged = mock_top_paged
+    mock_fetcher.close = AsyncMock()
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("apps.api.routers.import_router.AsyncSessionLocal", factory),
+        patch("apps.api.routers.import_router.SpotifyClient", return_value=mock_client),
+        patch("apps.api.routers.import_router.SpotifyFetcher", return_value=mock_fetcher),
+    ):
+        await _run_import("uid1", "tok", None, "client_id")
+
+    async with factory() as s:
+        links = (await s.execute(select(TrackArtist))).scalars().all()
+
+    assert len(links) == 2
+    primary = next(lk for lk in links if lk.is_primary)
+    secondary = next(lk for lk in links if not lk.is_primary)
+    assert primary is not None
+    assert secondary is not None

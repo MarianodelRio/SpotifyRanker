@@ -165,8 +165,23 @@ async def declare_artist(
                 duration_ms=raw_track.get("duration_ms", 0),
                 artist_name=track_artists[0]["name"] if track_artists else "",
                 album_title=album_raw.get("name", ""),
-                image_url=album_raw.get("images", [{}])[0].get("url"),
+                image_url=(album_raw.get("images") or [{}])[0].get("url"),
             )
+
+            for i, ta in enumerate(track_artists):
+                ta_spotify_id = ta.get("id")
+                if not ta_spotify_id:
+                    continue
+                ta_db_id = (
+                    artist_id
+                    if i == 0
+                    else await artist_repo.upsert(
+                        spotify_id=ta_spotify_id, name=ta.get("name", "")
+                    )
+                )
+                await artist_repo.upsert_track_artist(
+                    track_id=track_id, artist_id=ta_db_id, is_primary=(i == 0)
+                )
 
             is_main_album = album_raw.get("album_type") == "album"
             label = _ARTIST_POPULAR_LABEL if is_main_album else _ARTIST_REST_LABEL

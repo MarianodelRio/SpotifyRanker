@@ -106,9 +106,11 @@ async def _run_import(
         async with AsyncSessionLocal() as session:
             track_repo = TrackRepository(session)
             user_data_repo = UserTrackDataRepository(session)
+            artist_repo = ArtistRepository(session)
 
-            async for batch in fetcher.fetch_saved_tracks_paged():
-                for track in batch:
+            async for batch in fetcher.fetch_saved_tracks_with_artists_paged():
+                for parsed in batch:
+                    track = parsed.track
                     track_id = await track_repo.upsert(
                         spotify_id=track.spotify_id,
                         title=track.title,
@@ -124,15 +126,26 @@ async def _run_import(
                         save_source=SaveSource.spotify.value,
                         saved_at=now,
                     )
+                    for i, (artist_spotify_id, artist_name) in enumerate(
+                        zip(parsed.artist_spotify_ids, parsed.artist_names)
+                    ):
+                        artist_db_id = await artist_repo.upsert(
+                            spotify_id=artist_spotify_id, name=artist_name
+                        )
+                        await artist_repo.upsert_track_artist(
+                            track_id=track_id, artist_id=artist_db_id, is_primary=(i == 0)
+                        )
 
         # ── Phase 3: top tracks per time range ───────────────────────────────
         async with AsyncSessionLocal() as session:
             track_repo = TrackRepository(session)
             user_data_repo = UserTrackDataRepository(session)
+            artist_repo = ArtistRepository(session)
 
             for time_range in ("short_term", "medium_term", "long_term"):
-                async for batch in fetcher.fetch_top_tracks_paged(time_range):
-                    for position, track in enumerate(batch, start=1):
+                async for batch in fetcher.fetch_top_tracks_with_artists_paged(time_range):
+                    for position, parsed in enumerate(batch, start=1):
+                        track = parsed.track
                         track_id = await track_repo.upsert(
                             spotify_id=track.spotify_id,
                             title=track.title,
@@ -153,6 +166,15 @@ async def _run_import(
                         else:
                             await user_data_repo.upsert(
                                 track_id=track_id, top_position_long=position
+                            )
+                        for i, (artist_spotify_id, artist_name) in enumerate(
+                            zip(parsed.artist_spotify_ids, parsed.artist_names)
+                        ):
+                            artist_db_id = await artist_repo.upsert(
+                                spotify_id=artist_spotify_id, name=artist_name
+                            )
+                            await artist_repo.upsert_track_artist(
+                                track_id=track_id, artist_id=artist_db_id, is_primary=(i == 0)
                             )
 
         tracks_ok = True

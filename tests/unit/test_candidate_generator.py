@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db.models import Base
+from db.repositories.artist import ArtistRepository
 from libs.candidates.deduplicator import deduplicate_and_upsert
 from libs.candidates.generator import CandidateGenerator
 from libs.candidates.sources.artist_discography import fetch_artist_discography_candidates
@@ -28,17 +29,14 @@ def _track(spotify_id: str, title: str = "T") -> Track:
     )
 
 
-def _make_fetcher(
-    *,
-    albums: list[dict] | None = None,
-    album_tracks: list[Track] | None = None,
-    search_tracks: list[Track] | None = None,
-) -> SpotifyFetcher:
+def _make_fetcher(*, search_tracks: list[Track] | None = None) -> SpotifyFetcher:
     fetcher = MagicMock(spec=SpotifyFetcher)
-    fetcher.fetch_artist_albums = AsyncMock(return_value=albums or [])
-    fetcher.fetch_album_tracks = AsyncMock(return_value=album_tracks or [])
     fetcher.search = AsyncMock(return_value=search_tracks or [])
     return fetcher
+
+
+async def _seed_artist(session: AsyncSession, spotify_id: str, name: str) -> None:
+    await ArtistRepository(session).upsert(spotify_id=spotify_id, name=name)
 
 
 @pytest.fixture
@@ -60,12 +58,11 @@ async def test_artist_discography_returns_unknown_tracks():
         artist_affinities={"artist1": 0.9},
         known_track_ids={"known_track"},
     )
-    fetcher = _make_fetcher(
-        albums=[{"id": "album1"}],
-        album_tracks=[_track("known_track"), _track("new_track")],
-    )
+    fetcher = _make_fetcher(search_tracks=[_track("known_track"), _track("new_track")])
 
-    result = await fetch_artist_discography_candidates(profile, fetcher)
+    result = await fetch_artist_discography_candidates(
+        profile, fetcher, {"artist1": "Artist One"}
+    )
 
     assert len(result) == 1
     assert result[0].track.spotify_id == "new_track"
@@ -76,33 +73,40 @@ async def test_artist_discography_empty_affinities():
     profile = UserProfile()
     fetcher = _make_fetcher()
 
-    result = await fetch_artist_discography_candidates(profile, fetcher)
+    result = await fetch_artist_discography_candidates(profile, fetcher, {})
 
     assert result == []
-    fetcher.fetch_artist_albums.assert_not_called()
+    fetcher.search.assert_not_called()
+
+
+async def test_artist_discography_skips_artist_missing_from_db():
+    profile = UserProfile(artist_affinities={"unknown_id": 0.9})
+    fetcher = _make_fetcher(search_tracks=[_track("t1")])
+
+    result = await fetch_artist_discography_candidates(profile, fetcher, {})
+
+    assert result == []
+    fetcher.search.assert_not_called()
 
 
 async def test_artist_discography_affinity_score_propagated():
     profile = UserProfile(artist_affinities={"a1": 0.7})
-    fetcher = _make_fetcher(
-        albums=[{"id": "alb1"}],
-        album_tracks=[_track("t1")],
-    )
+    fetcher = _make_fetcher(search_tracks=[_track("t1")])
 
-    result = await fetch_artist_discography_candidates(profile, fetcher)
+    result = await fetch_artist_discography_candidates(profile, fetcher, {"a1": "Artist One"})
 
     assert result[0].artist_affinity_score == pytest.approx(0.7)
 
 
 async def test_artist_discography_top_n_artists_selected():
-    # Only top 10 artists should be queried; lower-affinity ones skipped.
     affinities = {f"artist{i}": float(i) / 100 for i in range(15)}
+    names = {f"artist{i}": f"Name {i}" for i in range(15)}
     profile = UserProfile(artist_affinities=affinities)
-    fetcher = _make_fetcher(albums=[], album_tracks=[])
+    fetcher = _make_fetcher(search_tracks=[])
 
-    await fetch_artist_discography_candidates(profile, fetcher)
+    await fetch_artist_discography_candidates(profile, fetcher, names)
 
-    assert fetcher.fetch_artist_albums.call_count == 10
+    assert fetcher.search.call_count == 10
 
 
 # ── genre_search source ───────────────────────────────────────────────────────
@@ -167,7 +171,6 @@ async def test_deduplicator_upserts_to_db(session: AsyncSession):
     result = await deduplicate_and_upsert(candidates, session)
 
     assert len(result) == 2
-    # Verify tracks were persisted
     from db.repositories.track import TrackRepository
 
     repo = TrackRepository(session)
@@ -194,15 +197,12 @@ async def test_generator_empty_profile_returns_empty(session: AsyncSession):
 
 
 async def test_generator_no_known_tracks_in_output(session: AsyncSession):
+    await _seed_artist(session, "a1", "Artist One")
     profile = UserProfile(
         artist_affinities={"a1": 0.9},
         known_track_ids={"known1"},
     )
-    fetcher = _make_fetcher(
-        albums=[{"id": "alb1"}],
-        album_tracks=[_track("known1"), _track("new1")],
-        search_tracks=[],
-    )
+    fetcher = _make_fetcher(search_tracks=[_track("known1"), _track("new1")])
     generator = CandidateGenerator()
 
     result = await generator.generate(profile, fetcher, session)
@@ -213,16 +213,13 @@ async def test_generator_no_known_tracks_in_output(session: AsyncSession):
 
 
 async def test_generator_deduplicates_across_sources(session: AsyncSession):
+    await _seed_artist(session, "a1", "Artist One")
     shared_track = _track("shared")
     profile = UserProfile(
         artist_affinities={"a1": 0.8},
         genre_weights={"pop": 0.7},
     )
-    fetcher = _make_fetcher(
-        albums=[{"id": "alb1"}],
-        album_tracks=[shared_track],
-        search_tracks=[shared_track],
-    )
+    fetcher = _make_fetcher(search_tracks=[shared_track])
     generator = CandidateGenerator()
 
     result = await generator.generate(profile, fetcher, session)
@@ -232,16 +229,23 @@ async def test_generator_deduplicates_across_sources(session: AsyncSession):
 
 
 async def test_generator_respects_total_cap(session: AsyncSession):
+    await _seed_artist(session, "a1", "Artist One")
     profile = UserProfile(artist_affinities={"a1": 1.0})
-    # Simulate 600 tracks from artist discography
     many_tracks = [_track(f"t{i}") for i in range(600)]
-    fetcher = _make_fetcher(
-        albums=[{"id": "alb1"}],
-        album_tracks=many_tracks,
-        search_tracks=[],
-    )
+    fetcher = _make_fetcher(search_tracks=many_tracks)
     generator = CandidateGenerator()
 
     result = await generator.generate(profile, fetcher, session)
 
     assert len(result) <= 500
+
+
+async def test_generator_skips_artists_not_in_db(session: AsyncSession):
+    profile = UserProfile(artist_affinities={"unknown_id": 0.9})
+    fetcher = _make_fetcher(search_tracks=[_track("t1")])
+    generator = CandidateGenerator()
+
+    result = await generator.generate(profile, fetcher, session)
+
+    assert result == []
+    fetcher.search.assert_not_called()

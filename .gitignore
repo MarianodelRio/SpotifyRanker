@@ -52,3 +52,5 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+models_store/*

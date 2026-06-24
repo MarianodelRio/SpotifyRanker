@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 from typing import Any
 
 from libs.common.models import Artist, Track
 from libs.spotify.client import SpotifyClient
 
 _TIME_RANGES = ("short_term", "medium_term", "long_term")
+
+
+@dataclass
+class ParsedTrackWithArtists:
+    """Track domain model paired with artist IDs/names from the raw Spotify response."""
+
+    track: Track
+    artist_spotify_ids: list[str] = field(default_factory=list)
+    artist_names: list[str] = field(default_factory=list)
 
 
 class SpotifyFetcher:
@@ -26,6 +36,13 @@ class SpotifyFetcher:
         async for raw_items in self._client.get_pages("/me/tracks", limit=limit):
             yield [_parse_saved_track(item) for item in raw_items]
 
+    async def fetch_saved_tracks_with_artists_paged(
+        self, limit: int = 50
+    ) -> AsyncGenerator[list[ParsedTrackWithArtists], None]:
+        """Like fetch_saved_tracks_paged but also carries artist IDs for track_artists linking."""
+        async for raw_items in self._client.get_pages("/me/tracks", limit=limit):
+            yield [_parse_saved_track_with_artists(item) for item in raw_items]
+
     # ── Top tracks ────────────────────────────────────────────────────────────
 
     async def fetch_top_tracks(self, time_range: str = "medium_term") -> list[Track]:
@@ -44,6 +61,17 @@ class SpotifyFetcher:
             "/me/top/tracks", time_range=time_range, limit=limit
         ):
             yield [_parse_track(item) for item in raw_items]
+
+    async def fetch_top_tracks_with_artists_paged(
+        self, time_range: str, limit: int = 50
+    ) -> AsyncGenerator[list[ParsedTrackWithArtists], None]:
+        """Like fetch_top_tracks_paged but also carries artist IDs for track_artists linking."""
+        if time_range not in _TIME_RANGES:
+            raise ValueError(f"time_range must be one of {_TIME_RANGES}")
+        async for raw_items in self._client.get_pages(
+            "/me/top/tracks", time_range=time_range, limit=limit
+        ):
+            yield [_parse_track_with_artists(item) for item in raw_items]
 
     # ── Top artists ───────────────────────────────────────────────────────────
 
@@ -170,6 +198,18 @@ class SpotifyFetcher:
 
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
+
+
+def _parse_track_with_artists(raw: dict[str, Any]) -> ParsedTrackWithArtists:
+    track = _parse_track(raw)
+    artists = raw.get("artists", [])
+    ids = [a["id"] for a in artists if a.get("id")]
+    names = [a["name"] for a in artists if a.get("id")]
+    return ParsedTrackWithArtists(track=track, artist_spotify_ids=ids, artist_names=names)
+
+
+def _parse_saved_track_with_artists(raw: dict[str, Any]) -> ParsedTrackWithArtists:
+    return _parse_track_with_artists(raw["track"])
 
 
 def _parse_track(raw: dict[str, Any]) -> Track:

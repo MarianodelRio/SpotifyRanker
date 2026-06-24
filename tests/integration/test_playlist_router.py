@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from apps.api.config import Settings, get_settings
 from apps.api.main import app
 from db.models import Auth, Base, Playlist, PlaylistTrack, Track
+from db.repositories import ArtistRepository, TrackRepository, UserTrackDataRepository
 from db.session import get_db
 from libs.common.enums import CandidateSource, ImportStatus, PlaylistMode
 from libs.common.models import Candidate, GeneratedPlaylist, RankedTrack, UserProfile
@@ -339,3 +340,68 @@ async def test_export_playlist_success(client, test_engine):
 
     mock_fetcher.create_playlist.assert_called_once()
     mock_fetcher.add_tracks_to_playlist.assert_called_once()
+
+
+# ── Pipeline smoke test: real DB + mocked Spotify search ─────────────────────
+
+
+async def _seed_artist_with_saved_track(
+    engine: object,
+    *,
+    artist_spotify_id: str = "sp_artist1",
+    artist_name: str = "David Guetta",
+    track_spotify_id: str = "sp_known_track",
+) -> None:
+    """Seed one artist → track → track_artist → user_track_data chain."""
+    factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[arg-type]
+    async with factory() as session:
+        artist_repo = ArtistRepository(session)
+        artist_db_id = await artist_repo.upsert(
+            spotify_id=artist_spotify_id, name=artist_name, popularity=80
+        )
+        track_repo = TrackRepository(session)
+        track_db_id = await track_repo.upsert(
+            spotify_id=track_spotify_id,
+            title="Known Hit",
+            artist_name=artist_name,
+            album_title="Album",
+            duration_ms=200_000,
+            popularity=75,
+        )
+        await artist_repo.upsert_track_artist(
+            track_id=track_db_id, artist_id=artist_db_id, is_primary=True
+        )
+        await UserTrackDataRepository(session).upsert(track_id=track_db_id, is_saved=True)
+
+
+async def test_generate_pipeline_searches_by_artist_name(client, test_engine):
+    """Full pipeline: DB artist → build_profile → search(q=artist_name) → candidates → playlist."""
+    await _seed_auth(test_engine)
+    await _seed_artist_with_saved_track(test_engine)
+
+    new_track = TrackModel(
+        spotify_id="sp_new_discovery",
+        title="New Hit",
+        artist_name="David Guetta",
+        album_title="New Album",
+        duration_ms=210_000,
+        popularity=80,
+    )
+    mock_fetcher = MagicMock()
+    mock_fetcher.search = AsyncMock(return_value=[new_track])
+
+    with (
+        patch("apps.api.routers.playlist_router.load_model", return_value=MagicMock()),
+        patch("apps.api.routers.playlist_router.SpotifyFetcher", return_value=mock_fetcher),
+        patch("apps.api.routers.playlist_router.rank", return_value=[_make_ranked_track()]),
+        patch(
+            "apps.api.routers.playlist_router.assemble",
+            new_callable=AsyncMock,
+            return_value=_make_generated_playlist(),
+        ),
+    ):
+        resp = await client.post("/playlist/generate", json={"mode": "balanced", "size": 5})
+
+    assert resp.status_code == 200
+    # Verify search was called with the artist name resolved from DB (not the spotify_id)
+    mock_fetcher.search.assert_called_with(q="David Guetta", type="track", limit=10)

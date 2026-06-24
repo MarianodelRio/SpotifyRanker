@@ -110,6 +110,60 @@ async def test_artist_get_by_id_missing(session):
     assert await repo.get_by_id("nonexistent") is None
 
 
+async def test_artist_upsert_track_artist_creates_link(session):
+    artist_repo = ArtistRepository(session)
+    track_repo = TrackRepository(session)
+
+    artist_id = await artist_repo.upsert(spotify_id="sp_a1", name="Artist One")
+    track_id = await track_repo.upsert(spotify_id="sp_t1", title="Song A")
+
+    await artist_repo.upsert_track_artist(track_id=track_id, artist_id=artist_id, is_primary=True)
+
+    from sqlalchemy import select as sa_select
+
+    result = await session.execute(sa_select(TrackArtist).where(TrackArtist.track_id == track_id))
+    links = result.scalars().all()
+    assert len(links) == 1
+    assert links[0].artist_id == artist_id
+    assert links[0].is_primary is True
+
+
+async def test_artist_upsert_track_artist_is_idempotent(session):
+    artist_repo = ArtistRepository(session)
+    track_repo = TrackRepository(session)
+
+    artist_id = await artist_repo.upsert(spotify_id="sp_a1", name="Artist One")
+    track_id = await track_repo.upsert(spotify_id="sp_t1", title="Song A")
+
+    await artist_repo.upsert_track_artist(track_id=track_id, artist_id=artist_id, is_primary=True)
+    await artist_repo.upsert_track_artist(track_id=track_id, artist_id=artist_id, is_primary=True)
+
+    from sqlalchemy import select as sa_select
+
+    result = await session.execute(sa_select(TrackArtist).where(TrackArtist.track_id == track_id))
+    assert len(result.scalars().all()) == 1
+
+
+async def test_artist_upsert_track_artist_multiple_artists(session):
+    artist_repo = ArtistRepository(session)
+    track_repo = TrackRepository(session)
+
+    a1_id = await artist_repo.upsert(spotify_id="sp_a1", name="Primary Artist")
+    a2_id = await artist_repo.upsert(spotify_id="sp_a2", name="Featured Artist")
+    track_id = await track_repo.upsert(spotify_id="sp_t1", title="Collab Track")
+
+    await artist_repo.upsert_track_artist(track_id=track_id, artist_id=a1_id, is_primary=True)
+    await artist_repo.upsert_track_artist(track_id=track_id, artist_id=a2_id, is_primary=False)
+
+    from sqlalchemy import select as sa_select
+
+    result = await session.execute(sa_select(TrackArtist).where(TrackArtist.track_id == track_id))
+    links = result.scalars().all()
+    assert len(links) == 2
+    primary = next(lk for lk in links if lk.is_primary)
+    assert primary.artist_id == a1_id
+
+
 async def test_artist_get_top_by_affinity_empty(session):
     repo = ArtistRepository(session)
     result = await repo.get_top_by_affinity(limit=5)
@@ -385,3 +439,34 @@ async def test_auth_update_token(session):
     assert auth is not None
     assert auth.access_token == "new_access"
     assert auth.refresh_token == "new_refresh"
+
+
+# ── ArtistRepository.get_names_by_spotify_ids ─────────────────────────────────
+
+
+async def test_artist_get_names_by_spotify_ids_returns_known_names(session):
+    repo = ArtistRepository(session)
+    await repo.upsert(spotify_id="sp1", name="Artist One")
+    await repo.upsert(spotify_id="sp2", name="Artist Two")
+
+    result = await repo.get_names_by_spotify_ids(["sp1", "sp2"])
+
+    assert result == {"sp1": "Artist One", "sp2": "Artist Two"}
+
+
+async def test_artist_get_names_by_spotify_ids_ignores_unknown_ids(session):
+    repo = ArtistRepository(session)
+    await repo.upsert(spotify_id="sp1", name="Artist One")
+
+    result = await repo.get_names_by_spotify_ids(["sp1", "does_not_exist"])
+
+    assert result == {"sp1": "Artist One"}
+    assert "does_not_exist" not in result
+
+
+async def test_artist_get_names_by_spotify_ids_empty_input(session):
+    repo = ArtistRepository(session)
+
+    result = await repo.get_names_by_spotify_ids([])
+
+    assert result == {}

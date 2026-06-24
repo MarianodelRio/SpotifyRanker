@@ -6,7 +6,7 @@ from libs.spotify.fetcher import SpotifyFetcher
 
 _PER_SOURCE_CAP = 150
 _TOP_GENRES_N = 5
-_RESULTS_PER_GENRE = 30
+_RESULTS_PER_GENRE = 10
 
 
 async def fetch_genre_search_candidates(

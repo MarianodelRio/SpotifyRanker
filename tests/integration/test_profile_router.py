@@ -4,11 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from apps.api.config import Settings
 from apps.api.main import app
-from db.models import Auth, Base
+from db.models import Auth, Base, TrackArtist
 from db.session import get_db
 from libs.common.enums import ImportStatus
 from libs.common.models import Artist, Track
@@ -313,3 +314,74 @@ async def test_declare_playlist_appears_in_declared_list(authed_client):
     data = resp.json()
     assert len(data["playlists"]) == 1
     assert data["playlists"][0]["spotify_id"] == "pl_abc"
+
+
+# ── declare_artist: track_artists linking ─────────────────────────────────────
+
+
+async def test_declare_artist_creates_track_artist_links(authed_engine, override_settings):
+    """Tracks fetched for a declared artist must be linked in track_artists."""
+    factory = async_sessionmaker(authed_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def override_db():
+        async with factory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    from apps.api.config import get_settings
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_settings] = lambda: override_settings
+
+    mock_fetcher = MagicMock()
+    mock_fetcher.fetch_artist = AsyncMock(return_value=_mock_artist(spotify_id="artist_123"))
+    mock_fetcher.fetch_artist_tracks_via_search = AsyncMock(
+        return_value=[
+            {
+                "id": "track_t1",
+                "name": "Hit",
+                "duration_ms": 200_000,
+                "artists": [
+                    {"id": "artist_123", "name": "Test Artist"},
+                    {"id": "feat_456", "name": "Featured"},
+                ],
+                "album": {
+                    "id": "album_1",
+                    "name": "Album One",
+                    "album_type": "album",
+                    "release_date": "2022-01-01",
+                    "total_tracks": 1,
+                    "images": [],
+                },
+            }
+        ]
+    )
+
+    mock_client_instance = AsyncMock()
+    mock_client_instance.close = AsyncMock()
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        with (
+            patch(
+                "apps.api.routers.profile_router.SpotifyClient",
+                return_value=mock_client_instance,
+            ),
+            patch("apps.api.routers.profile_router.SpotifyFetcher", return_value=mock_fetcher),
+        ):
+            resp = await ac.post("/profile/artist", json={"spotify_id": "artist_123"})
+
+    app.dependency_overrides.clear()
+
+    assert resp.status_code == 201
+
+    async with factory() as s:
+        links = (await s.execute(select(TrackArtist))).scalars().all()
+
+    assert len(links) == 2
+    primary_links = [lk for lk in links if lk.is_primary]
+    assert len(primary_links) == 1

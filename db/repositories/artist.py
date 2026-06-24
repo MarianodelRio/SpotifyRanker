@@ -57,6 +57,25 @@ class ArtistRepository:
         assert row is not None
         return row.id
 
+    async def upsert_track_artist(
+        self, *, track_id: str, artist_id: str, is_primary: bool
+    ) -> None:
+        stmt = (
+            insert(TrackArtist)
+            .values(track_id=track_id, artist_id=artist_id, is_primary=is_primary)
+            .on_conflict_do_nothing()
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
+    async def get_names_by_spotify_ids(self, spotify_ids: list[str]) -> dict[str, str]:
+        if not spotify_ids:
+            return {}
+        result = await self._session.execute(
+            select(Artist.spotify_id, Artist.name).where(Artist.spotify_id.in_(spotify_ids))
+        )
+        return {row.spotify_id: row.name for row in result}
+
     async def get_top_by_affinity(self, limit: int = 20) -> list[Artist]:
         """Return artists ranked by total play count of their tracks."""
         stmt = (

@@ -6,7 +6,7 @@ import pytest
 
 from libs.common.models import Artist, Track
 from libs.spotify.client import SpotifyClient
-from libs.spotify.fetcher import SpotifyFetcher
+from libs.spotify.fetcher import ParsedTrackWithArtists, SpotifyFetcher
 
 # ── Shared fixtures ───────────────────────────────────────────────────────────
 
@@ -14,6 +14,19 @@ _TRACK_RAW = {
     "id": "track_abc",
     "name": "Song A",
     "artists": [{"name": "Artist X"}],
+    "album": {"name": "Album Z", "images": [{"url": "http://img.example.com/a.jpg"}]},
+    "duration_ms": 180000,
+    "popularity": 75,
+}
+
+# Track raw with artist IDs (as Spotify actually returns)
+_TRACK_RAW_WITH_IDS = {
+    "id": "track_abc",
+    "name": "Song A",
+    "artists": [
+        {"id": "artist_id_1", "name": "Artist X"},
+        {"id": "artist_id_2", "name": "Featured Y"},
+    ],
     "album": {"name": "Album Z", "images": [{"url": "http://img.example.com/a.jpg"}]},
     "duration_ms": 180000,
     "popularity": 75,
@@ -28,12 +41,25 @@ _ARTIST_RAW = {
 }
 
 _SAVED_TRACK_RAW = {"track": _TRACK_RAW, "added_at": "2024-01-01T00:00:00Z"}
+_SAVED_TRACK_RAW_WITH_IDS = {"track": _TRACK_RAW_WITH_IDS, "added_at": "2024-01-01T00:00:00Z"}
 
 
 def _make_client(get_return=None, paginated_return=None):  # type: ignore[no-untyped-def]
     client = MagicMock(spec=SpotifyClient)
     client.get = AsyncMock(return_value=get_return or {})
     client.get_paginated = AsyncMock(return_value=paginated_return or [])
+    return client
+
+
+def _make_paged_client(pages: list[list]):  # type: ignore[no-untyped-def]
+    """Client whose get_pages yields one list per page."""
+
+    async def _get_pages(*args, **kwargs):  # type: ignore[no-untyped-def]
+        for page in pages:
+            yield page
+
+    client = MagicMock(spec=SpotifyClient)
+    client.get_pages = _get_pages
     return client
 
 
@@ -301,3 +327,94 @@ async def test_search_clamps_limit_to_50():
     await fetcher.search("q", type="track", limit=200)
 
     client.get.assert_awaited_once_with("/search", q="q", type="track", limit=50)
+
+
+# ── fetch_saved_tracks_with_artists_paged ─────────────────────────────────────
+
+
+async def test_fetch_saved_tracks_with_artists_paged_returns_parsed():
+    client = _make_paged_client([[_SAVED_TRACK_RAW_WITH_IDS]])
+    fetcher = SpotifyFetcher(client)
+
+    batches = []
+    async for batch in fetcher.fetch_saved_tracks_with_artists_paged():
+        batches.append(batch)
+
+    assert len(batches) == 1
+    assert len(batches[0]) == 1
+    parsed = batches[0][0]
+    assert isinstance(parsed, ParsedTrackWithArtists)
+    assert parsed.track.spotify_id == "track_abc"
+    assert parsed.artist_spotify_ids == ["artist_id_1", "artist_id_2"]
+    assert parsed.artist_names == ["Artist X", "Featured Y"]
+
+
+async def test_fetch_saved_tracks_with_artists_paged_no_artist_id():
+    """Tracks whose artists lack an id field are handled gracefully."""
+    client = _make_paged_client([[_SAVED_TRACK_RAW]])  # _TRACK_RAW has no artist id
+    fetcher = SpotifyFetcher(client)
+
+    batches = []
+    async for batch in fetcher.fetch_saved_tracks_with_artists_paged():
+        batches.append(batch)
+
+    parsed = batches[0][0]
+    assert parsed.artist_spotify_ids == []
+    assert parsed.artist_names == []
+
+
+async def test_fetch_saved_tracks_with_artists_paged_empty():
+    client = _make_paged_client([[]])
+    fetcher = SpotifyFetcher(client)
+
+    batches = [b async for b in fetcher.fetch_saved_tracks_with_artists_paged()]
+    assert batches == [[]]
+
+
+# ── fetch_top_tracks_with_artists_paged ──────────────────────────────────────
+
+
+async def test_fetch_top_tracks_with_artists_paged_returns_parsed():
+    client = _make_paged_client([[_TRACK_RAW_WITH_IDS]])
+    fetcher = SpotifyFetcher(client)
+
+    batches = []
+    async for batch in fetcher.fetch_top_tracks_with_artists_paged("short_term"):
+        batches.append(batch)
+
+    assert len(batches) == 1
+    parsed = batches[0][0]
+    assert isinstance(parsed, ParsedTrackWithArtists)
+    assert parsed.track.spotify_id == "track_abc"
+    assert parsed.artist_spotify_ids == ["artist_id_1", "artist_id_2"]
+
+
+async def test_fetch_top_tracks_with_artists_paged_invalid_time_range():
+    client = _make_paged_client([])
+    fetcher = SpotifyFetcher(client)
+
+    with pytest.raises(ValueError, match="time_range"):
+        async for _ in fetcher.fetch_top_tracks_with_artists_paged("bad_range"):
+            pass
+
+
+async def test_fetch_top_tracks_with_artists_paged_multiple_pages():
+    page1 = [_TRACK_RAW_WITH_IDS]
+    page2 = [
+        {
+            **_TRACK_RAW_WITH_IDS,
+            "id": "track_xyz",
+            "artists": [{"id": "artist_id_3", "name": "Artist Z"}],
+        }
+    ]
+    client = _make_paged_client([page1, page2])
+    fetcher = SpotifyFetcher(client)
+
+    all_parsed = []
+    async for batch in fetcher.fetch_top_tracks_with_artists_paged("medium_term"):
+        all_parsed.extend(batch)
+
+    assert len(all_parsed) == 2
+    assert all_parsed[0].track.spotify_id == "track_abc"
+    assert all_parsed[1].track.spotify_id == "track_xyz"
+    assert all_parsed[1].artist_spotify_ids == ["artist_id_3"]
